@@ -1,4 +1,4 @@
-package sigurlx
+package runner
 
 import (
 	"errors"
@@ -19,7 +19,6 @@ type Options struct {
 	Request    bool
 
 	// REQUEST OPTIONS
-	VerifyTLS bool
 	Proxy     string
 	UserAgent string
 	Timeout   int

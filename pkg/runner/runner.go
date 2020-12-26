@@ -1,4 +1,4 @@
-package sigurlx
+package runner
 
 import (
 	"crypto/tls"
@@ -11,26 +11,25 @@ import (
 	"time"
 
 	"github.com/drsigned/sigurlx/pkg/categorize"
-	"github.com/drsigned/sigurlx/pkg/paramscan"
+	"github.com/drsigned/sigurlx/pkg/params"
 )
 
 // Runner is a
 type Runner struct {
 	Options    *Options
 	Categories categorize.Categories
-	Params     []paramscan.Params
+	Params     []params.Params
 	Client     *http.Client
 }
 
 // Results is a
 type Results struct {
-	URL           string             `json:"url,omitempty"`
-	Category      string             `json:"category,omitempty"`
-	StatusCode    int                `json:"status_code,omitempty"`
-	ContentType   string             `json:"content_type,omitempty"`
-	ContentLength int64              `json:"content_length,omitempty"`
-	List          []string           `json:"params_list,omitempty"`
-	Risky         []paramscan.Params `json:"risky_params,omitempty"`
+	URL           string          `json:"url,omitempty"`
+	Category      string          `json:"category,omitempty"`
+	StatusCode    int             `json:"status_code,omitempty"`
+	ContentType   string          `json:"content_type,omitempty"`
+	ContentLength int64           `json:"content_length,omitempty"`
+	Params        *params.Results `json:"parameters,omitempty"`
 }
 
 // New is a
@@ -39,25 +38,12 @@ func New(options *Options) (runner Runner, err error) {
 	runner.Options = options
 
 	// Regex
-	runner.Categories.STYLE, err = newRegex(`(?m).*?\.(css)(\?.*?|)$`)
-	if err != nil {
-		return runner, err
-	}
-
-	runner.Categories.JS, err = newRegex(`(?m).*?\.(js|json|xml|csv)(\?.*?|)$`)
-	if err != nil {
-		return runner, err
-	}
-
-	runner.Categories.DOC, err = newRegex(`(?m).*?\.(pdf|xlsx|doc|docx|txt)(\?.*?|)$`)
-	if err != nil {
-		return runner, err
-	}
-
-	runner.Categories.MEDIA, err = newRegex(`(?m).*?\.(jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff)(\?.*?|)$`)
-	if err != nil {
-		return runner, err
-	}
+	runner.Categories.JS, _ = newRegex(`(?m).*?\.(js)(\?.*?|)$`)
+	runner.Categories.STYLE, _ = newRegex(`(?m).*?\.(css)(\?.*?|)$`)
+	runner.Categories.DATA, _ = newRegex(`(?m).*?\.(json|xml|csv)(\?.*?|)$`)
+	runner.Categories.ARCHIVE, _ = newRegex(`(?m).*?\.(zip|tar|tar\.gz)(\?.*?|)$`)
+	runner.Categories.DOC, _ = newRegex(`(?m).*?\.(pdf|xlsx|doc|docx|txt)(\?.*?|)$`)
+	runner.Categories.MEDIA, _ = newRegex(`(?m).*?\.(jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff)(\?.*?|)$`)
 
 	// Params
 	raw, err := ioutil.ReadFile(runner.Options.ParamsPath)
@@ -74,12 +60,9 @@ func New(options *Options) (runner Runner, err error) {
 			Timeout:   time.Duration(runner.Options.Timeout) * time.Second,
 			KeepAlive: time.Second,
 		}).DialContext,
-	}
-
-	if !runner.Options.VerifyTLS {
-		tr.TLSClientConfig = &tls.Config{
+		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
-		}
+		},
 	}
 
 	if runner.Options.Proxy != "" {
@@ -115,7 +98,7 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 
 	// Scan Parameters
 	if runner.Options.ScanParam || runner.Options.All {
-		results.List, results.Risky, err = paramscan.Run(URL, runner.Params)
+		results.Params, err = params.Scan(URL, runner.Params)
 		if err != nil {
 			return results, err
 		}

@@ -20,12 +20,15 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 
 * Categorize URLs into:
     * endpoint
+    * js {js}
     * style {css}
-    * js {js|json|xml|csv}
-    * doc {pdf|doc|docx|xlsx}
+    * data {json|xml|csv}
+    * archive {zip|tar|tar.gz}
+    * doc {pdf|xlsx|doc|docx|txt}
     * media {jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff}
 * Some HTTP parameter names are more commonly associated with one functionality than the others, sigurlx finds such parameter names and the risks commonly associated with them.
-* send HTTP request
+* Request the URLs, check the response body for any reflected parameters.
+
 ## Usage
 
 To display help message for sigurlx use the `-h` flag:
@@ -87,7 +90,7 @@ $ git clone https://github.com/drsigned/sigurlx.git; cd sigurlx/cmd/sigurlx/; go
 
 ## Credits
 
-The list of parameter names and the riskss associated with them is mainly created from the public work of various people of the community - inital list was obtained from [Somdev Sangwan](https://github.com/s0md3v)'s [Parth](https://github.com/s0md3v/Parth) .
+The list of parameter names and the risks associated with them is mainly created from the public work of various people of the community - inital list was obtained from [Somdev Sangwan](https://github.com/s0md3v)'s [Parth](https://github.com/s0md3v/Parth).
 
 ## Contribution
 

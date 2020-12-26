@@ -14,24 +14,24 @@ import (
 	"time"
 
 	"github.com/drsigned/gos"
-	"github.com/drsigned/sigurlx/pkg/sigurlx"
+	"github.com/drsigned/sigurlx/pkg/runner"
 	"github.com/logrusorgru/aurora/v3"
 )
 
 type options struct {
-	delay       int
-	concurrency int
-	output      string
-	silent      bool
-	noColor     bool
-	URLs        string
-	verbose     bool
+	delay   int
+	threads int
+	output  string
+	silent  bool
+	noColor bool
+	URLs    string
+	verbose bool
 }
 
 var (
 	co options
 	au aurora.Aurora
-	so sigurlx.Options
+	ro runner.Options
 )
 
 func banner() {
@@ -46,24 +46,23 @@ func banner() {
 }
 
 func init() {
+	// task options
+	flag.BoolVar(&ro.Categorize, "C", false, "")
+	flag.BoolVar(&ro.ScanParam, "P", false, "")
+	flag.BoolVar(&ro.Request, "request", false, "")
+
 	// general options
-	flag.IntVar(&co.concurrency, "c", 50, "")
+	flag.IntVar(&co.threads, "threads", 50, "")
 	flag.IntVar(&co.delay, "delay", 100, "")
+	flag.StringVar(&co.URLs, "iL", "", "")
 	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.BoolVar(&co.silent, "s", false, "")
-	flag.StringVar(&co.URLs, "iL", "", "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 
-	// task options
-	flag.BoolVar(&so.Categorize, "cat", false, "")
-	flag.BoolVar(&so.ScanParam, "param-scan", false, "")
-	flag.BoolVar(&so.Request, "request", false, "")
-
 	// Http options
-	flag.IntVar(&so.Timeout, "timeout", 10, "")
-	flag.BoolVar(&so.VerifyTLS, "tls", false, "")
-	flag.StringVar(&so.UserAgent, "UA", "", "")
-	flag.StringVar(&so.Proxy, "x", "", "")
+	flag.IntVar(&ro.Timeout, "timeout", 10, "")
+	flag.StringVar(&ro.UserAgent, "UA", "", "")
+	flag.StringVar(&ro.Proxy, "x", "", "")
 
 	// OUTPUT
 	flag.StringVar(&co.output, "oJ", "", "")
@@ -75,21 +74,20 @@ func init() {
 		h += "  sigurlx [OPTIONS]\n\n"
 
 		h += "FEATURES:\n"
-		h += "  -cat               categorize (endpoints, js, style, doc & media)\n"
-		h += "  -param-scan        scan url parameters\n"
+		h += "  -C                 categorize (endpoints, js, style, doc & media)\n"
+		h += "  -P                 scan parameters\n"
 		h += "  -request           send HTTP request\n"
 
 		h += "\nGENERAL OPTIONS:\n"
-		h += "  -c                 concurrency level (default: 50)\n"
-		h += "  -delay             delay between requests (ms) (default: 100)\n"
+		h += "  -threads           number concurrent threads (default: 50)\n"
+		h += "  -delay             delay between requests (default: 100ms)\n"
+		h += "  -iL                urls (use `iL -` to read stdin)\n"
 		h += "  -nC                no color mode\n"
 		h += "  -s                 silent mode\n"
-		h += "  -iL                list of urls (use `-` to read stdin)\n"
 		h += "  -v                 verbose mode\n"
 
 		h += "\nREQUEST OPTIONS (used with -request):\n"
 		h += "  -timeout           HTTP request timeout (s) (default: 10)\n"
-		h += "  -tls               enable tls verification (default: false)\n"
 		h += "  -UA                HTTP user agent\n"
 		h += "  -x                 HTTP Proxy URL\n"
 
@@ -109,7 +107,7 @@ func main() {
 		banner()
 	}
 
-	URLs := make(chan string, co.concurrency)
+	URLs := make(chan string, co.threads)
 
 	go func() {
 		defer close(URLs)
@@ -127,14 +125,15 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
-
 			defer openedFile.Close()
 
 			scanner = bufio.NewScanner(openedFile)
 		}
 
 		for scanner.Scan() {
-			URLs <- scanner.Text()
+			if scanner.Text() != "" {
+				URLs <- scanner.Text()
+			}
 		}
 
 		if scanner.Err() != nil {
@@ -142,36 +141,31 @@ func main() {
 		}
 	}()
 
-	options, err := sigurlx.ParseOptions(&so)
+	options, err := runner.ParseOptions(&ro)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	var output []sigurlx.Results
-
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
-	delay := time.Duration(co.delay) * time.Millisecond
+	var output []runner.Results
 
-	for i := 0; i < co.concurrency; i++ {
+	for i := 0; i < co.threads; i++ {
 		wg.Add(1)
-		time.Sleep(delay)
+
+		time.Sleep(time.Duration(co.delay) * time.Millisecond)
 
 		go func() {
 			defer wg.Done()
 
-			runner, err := sigurlx.New(options)
+			sigurlx, err := runner.New(options)
 			if err != nil {
 				log.Fatalln(err)
 			}
 
 			for URL := range URLs {
-				if URL == "" {
-					continue
-				}
-
-				results, err := runner.Process(URL)
+				results, err := sigurlx.Process(URL)
 				if err != nil {
 					if co.verbose {
 						fmt.Fprintf(os.Stderr, err.Error()+"\n")
@@ -191,14 +185,16 @@ func main() {
 
 	wg.Wait()
 
-	if co.output != "" {
-		if err := saveResults(co.output, output); err != nil {
-			log.Fatalln(err)
-		}
+	if err := saveToJSON(co.output, output); err != nil {
+		log.Fatalln(err)
 	}
 }
 
-func saveResults(outputPath string, output []sigurlx.Results) error {
+func saveToJSON(outputPath string, output []runner.Results) error {
+	if outputPath != "" {
+		return nil
+	}
+
 	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 		directory, filename := path.Split(outputPath)
 
