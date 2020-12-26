@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -23,6 +24,7 @@ type options struct {
 	output      string
 	silent      bool
 	noColor     bool
+	URLs        string
 	verbose     bool
 }
 
@@ -49,6 +51,7 @@ func init() {
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.BoolVar(&co.silent, "s", false, "")
+	flag.StringVar(&co.URLs, "iL", "", "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 
 	// task options
@@ -81,6 +84,7 @@ func init() {
 		h += "  -delay             delay between requests (ms) (default: 100)\n"
 		h += "  -nC                no color mode\n"
 		h += "  -s                 silent mode\n"
+		h += "  -iL                list of urls (use `-` to read stdin)\n"
 		h += "  -v                 verbose mode\n"
 
 		h += "\nREQUEST OPTIONS (used with -request):\n"
@@ -101,17 +105,8 @@ func init() {
 }
 
 func main() {
-	if !gos.HasStdin() {
-		os.Exit(1)
-	}
-
 	if !co.silent {
 		banner()
-	}
-
-	options, err := sigurlx.ParseOptions(&so)
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	URLs := make(chan string, co.concurrency)
@@ -119,12 +114,38 @@ func main() {
 	go func() {
 		defer close(URLs)
 
-		scanner := bufio.NewScanner(os.Stdin)
+		var scanner *bufio.Scanner
+
+		if co.URLs == "-" {
+			if !gos.HasStdin() {
+				log.Fatalln(errors.New("no stdin"))
+			}
+
+			scanner = bufio.NewScanner(os.Stdin)
+		} else {
+			openedFile, err := os.Open(co.URLs)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			defer openedFile.Close()
+
+			scanner = bufio.NewScanner(openedFile)
+		}
 
 		for scanner.Scan() {
 			URLs <- scanner.Text()
 		}
+
+		if scanner.Err() != nil {
+			log.Fatalln(scanner.Err())
+		}
 	}()
+
+	options, err := sigurlx.ParseOptions(&so)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	var output []sigurlx.Results
 
