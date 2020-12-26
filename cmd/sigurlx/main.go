@@ -52,11 +52,11 @@ func init() {
 	flag.BoolVar(&ro.Request, "request", false, "")
 
 	// general options
-	flag.IntVar(&co.threads, "threads", 50, "")
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.StringVar(&co.URLs, "iL", "", "")
 	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.BoolVar(&co.silent, "s", false, "")
+	flag.IntVar(&co.threads, "threads", 50, "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 
 	// Http options
@@ -79,15 +79,15 @@ func init() {
 		h += "  -request           send HTTP request\n"
 
 		h += "\nGENERAL OPTIONS:\n"
-		h += "  -threads           number concurrent threads (default: 50)\n"
 		h += "  -delay             delay between requests (default: 100ms)\n"
 		h += "  -iL                urls (use `iL -` to read stdin)\n"
 		h += "  -nC                no color mode\n"
 		h += "  -s                 silent mode\n"
+		h += "  -threads           number concurrent threads (default: 50)\n"
 		h += "  -v                 verbose mode\n"
 
 		h += "\nREQUEST OPTIONS (used with -request):\n"
-		h += "  -timeout           HTTP request timeout (s) (default: 10)\n"
+		h += "  -timeout           HTTP request timeout (default: 10s)\n"
 		h += "  -UA                HTTP user agent\n"
 		h += "  -x                 HTTP Proxy URL\n"
 

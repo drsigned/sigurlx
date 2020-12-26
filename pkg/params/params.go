@@ -60,7 +60,7 @@ func Scan(URL string, params []Params) (*Results, error) {
 
 			parsedURL.RawQuery = query.Encode()
 
-			req, err := http.NewRequest("GET", URL, nil)
+			req, err := http.NewRequest(http.MethodGet, URL, nil)
 			if err != nil {
 				return results, err
 			}
@@ -75,13 +75,13 @@ func Scan(URL string, params []Params) (*Results, error) {
 			defer res.Body.Close()
 
 			// always read the full body so we can re-use the tcp connection
-			b, err := ioutil.ReadAll(res.Body)
+			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
 				return results, err
 			}
 
 			re := regexp.MustCompile(payload)
-			match := re.FindStringSubmatch(string(b))
+			match := re.FindStringSubmatch(string(body))
 
 			if match != nil {
 				results.Reflected = append(results.Reflected, parameter)
