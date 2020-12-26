@@ -47,20 +47,20 @@ USAGE:
   sigurlx [OPTIONS]
 
 FEATURES:
-  -cat               categorize (endpoints, js, style, doc & media)
-  -param-scan        scan url parameters
+  -C                 categorize (endpoints, js, style, doc & media)
+  -P                 scan parameters
   -request           send HTTP request
 
 GENERAL OPTIONS:
-  -c                 concurrency level (default: 50)
-  -delay             delay between requests (ms) (default: 100)
+  -delay             delay between requests (default: 100ms)
+  -iL                urls (use `iL -` to read stdin)
   -nC                no color mode
   -s                 silent mode
+  -threads           number concurrent threads (default: 50)
   -v                 verbose mode
 
 REQUEST OPTIONS (used with -request):
-  -timeout           HTTP request timeout (s) (default: 10)
-  -tls               enable tls verification (default: false)
+  -timeout           HTTP request timeout (default: 10s)
   -UA                HTTP user agent
   -x                 HTTP Proxy URL
 
