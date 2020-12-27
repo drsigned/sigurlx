@@ -1,4 +1,4 @@
-package sigurlx
+package runner
 
 import (
 	"regexp"

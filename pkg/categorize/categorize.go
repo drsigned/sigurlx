@@ -4,10 +4,12 @@ import "regexp"
 
 // Categories is a
 type Categories struct {
-	DOC   *regexp.Regexp
-	JS    *regexp.Regexp
-	STYLE *regexp.Regexp
-	MEDIA *regexp.Regexp
+	JS      *regexp.Regexp
+	DOC     *regexp.Regexp
+	DATA    *regexp.Regexp
+	STYLE   *regexp.Regexp
+	MEDIA   *regexp.Regexp
+	ARCHIVE *regexp.Regexp
 }
 
 // Run is a
@@ -21,6 +23,18 @@ func Run(URL string, categories Categories) (string, error) {
 	if category == "" {
 		if match := categories.JS.MatchString(URL); match {
 			category = "js"
+		}
+	}
+
+	if category == "" {
+		if match := categories.ARCHIVE.MatchString(URL); match {
+			category = "archive"
+		}
+	}
+
+	if category == "" {
+		if match := categories.DATA.MatchString(URL); match {
+			category = "data"
 		}
 	}
 
