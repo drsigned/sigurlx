@@ -14,18 +14,20 @@ import (
 	"time"
 
 	"github.com/drsigned/gos"
+	"github.com/drsigned/sigurlx/pkg/params"
 	"github.com/drsigned/sigurlx/pkg/runner"
 	"github.com/logrusorgru/aurora/v3"
 )
 
 type options struct {
-	delay   int
-	threads int
-	output  string
-	silent  bool
-	noColor bool
-	URLs    string
-	verbose bool
+	delay        int
+	threads      int
+	output       string
+	silent       bool
+	noColor      bool
+	URLs         string
+	updateParams bool
+	verbose      bool
 }
 
 var (
@@ -57,6 +59,7 @@ func init() {
 	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.BoolVar(&co.silent, "s", false, "")
 	flag.IntVar(&co.threads, "threads", 50, "")
+	flag.BoolVar(&co.updateParams, "update-params", false, "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 
 	// Http options
@@ -74,7 +77,7 @@ func init() {
 		h += "  sigurlx [OPTIONS]\n\n"
 
 		h += "FEATURES:\n"
-		h += "  -C                 categorize (endpoints, js, style, doc & media)\n"
+		h += "  -C                 categorize urls\n"
 		h += "  -P                 scan parameters\n"
 		h += "  -request           send HTTP request\n"
 
@@ -84,6 +87,7 @@ func init() {
 		h += "  -nC                no color mode\n"
 		h += "  -s                 silent mode\n"
 		h += "  -threads           number concurrent threads (default: 50)\n"
+		h += "  -update-params     update params file\n"
 		h += "  -v                 verbose mode\n"
 
 		h += "\nREQUEST OPTIONS (used with -request):\n"
@@ -105,6 +109,23 @@ func init() {
 func main() {
 	if !co.silent {
 		banner()
+	}
+
+	if co.updateParams {
+		if err := params.UpdateOrDownload(params.File()); err != nil {
+			log.Fatalln(err)
+		}
+
+		if !co.silent {
+			fmt.Println("[", au.BrightBlue("INF"), "] params file updated successfully :)")
+		}
+
+		os.Exit(0)
+	}
+
+	options, err := runner.ParseOptions(&ro)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	URLs := make(chan string, co.threads)
@@ -140,11 +161,6 @@ func main() {
 			log.Fatalln(scanner.Err())
 		}
 	}()
-
-	options, err := runner.ParseOptions(&ro)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
@@ -185,49 +201,38 @@ func main() {
 
 	wg.Wait()
 
-	if err := saveToJSON(co.output, output); err != nil {
-		log.Fatalln(err)
-	}
-}
+	// write output to file (json format)
+	if co.output != "" {
+		if _, err := os.Stat(co.output); os.IsNotExist(err) {
+			directory, filename := path.Split(co.output)
 
-func saveToJSON(outputPath string, output []runner.Results) error {
-	if outputPath != "" {
-		return nil
-	}
-
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		directory, filename := path.Split(outputPath)
-
-		if _, err := os.Stat(directory); os.IsNotExist(err) {
-			if directory != "" {
-				err = os.MkdirAll(directory, os.ModePerm)
-				if err != nil {
-					return err
+			if _, err := os.Stat(directory); os.IsNotExist(err) {
+				if directory != "" {
+					if err = os.MkdirAll(directory, os.ModePerm); err != nil {
+						log.Fatalln(err)
+					}
 				}
 			}
+
+			if strings.ToLower(path.Ext(filename)) != ".json" {
+				co.output = co.output + ".json"
+			}
 		}
-
-		if strings.ToLower(path.Ext(filename)) != ".json" {
-			outputPath = outputPath + ".json"
-		}
 	}
 
-	outputJSON, err := json.MarshalIndent(output, "", "\t")
+	JSON, err := json.MarshalIndent(output, "", "\t")
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 
-	outputFile, err := os.Create(outputPath)
+	file, err := os.Create(co.output)
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
+	defer file.Close()
 
-	defer outputFile.Close()
-
-	_, err = outputFile.WriteString(string(outputJSON))
+	_, err = file.WriteString(string(JSON))
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
-
-	return nil
 }

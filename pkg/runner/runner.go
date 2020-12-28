@@ -7,37 +7,58 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/drsigned/sigurlx/pkg/categorize"
 	"github.com/drsigned/sigurlx/pkg/params"
 )
+
+// Categories is a
+type URLCategoriesRegex struct {
+	JS      *regexp.Regexp
+	DOC     *regexp.Regexp
+	DATA    *regexp.Regexp
+	STYLE   *regexp.Regexp
+	MEDIA   *regexp.Regexp
+	ARCHIVE *regexp.Regexp
+}
+
+// RiskyParams is a
+type RiskyParams struct {
+	Param string   `json:"param,omitempty"`
+	Risks []string `json:"risks,omitempty"`
+}
 
 // Runner is a
 type Runner struct {
 	Options    *Options
-	Categories categorize.Categories
-	Params     []params.Params
+	Categories URLCategoriesRegex
+	Params     []RiskyParams
 	Client     *http.Client
 }
 
 // Results is a
 type Results struct {
-	URL           string          `json:"url,omitempty"`
-	Category      string          `json:"category,omitempty"`
-	StatusCode    int             `json:"status_code,omitempty"`
-	ContentType   string          `json:"content_type,omitempty"`
-	ContentLength int64           `json:"content_length,omitempty"`
-	Params        *params.Results `json:"parameters,omitempty"`
+	URL           string `json:"url,omitempty"`
+	Category      string `json:"category,omitempty"`
+	StatusCode    int    `json:"status_code,omitempty"`
+	ContentType   string `json:"content_type,omitempty"`
+	ContentLength int64  `json:"content_length,omitempty"`
+	AttackSurface struct {
+		Params struct {
+			List      []string      `json:"list,omitempty"`
+			Reflected []string      `json:"reflected,omitempty"`
+			Risky     []RiskyParams `json:"risky,omitempty"`
+		} `json:"params,omitempty"`
+		DOM []string `json:"dom,omitempty"`
+	} `json:"attack_surface,omitempty"`
 }
 
 // New is a
 func New(options *Options) (runner Runner, err error) {
-	// Options
 	runner.Options = options
 
-	// Regex
 	runner.Categories.JS, _ = newRegex(`(?m).*?\.(js)(\?.*?|)$`)
 	runner.Categories.STYLE, _ = newRegex(`(?m).*?\.(css)(\?.*?|)$`)
 	runner.Categories.DATA, _ = newRegex(`(?m).*?\.(json|xml|csv)(\?.*?|)$`)
@@ -46,7 +67,7 @@ func New(options *Options) (runner Runner, err error) {
 	runner.Categories.MEDIA, _ = newRegex(`(?m).*?\.(jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff)(\?.*?|)$`)
 
 	// Params
-	raw, err := ioutil.ReadFile(runner.Options.ParamsPath)
+	raw, err := ioutil.ReadFile(params.File())
 	if err != nil {
 		return runner, err
 	}
@@ -81,32 +102,88 @@ func New(options *Options) (runner Runner, err error) {
 
 // Process is a
 func (runner *Runner) Process(URL string) (results Results, err error) {
-	results.URL = URL
-
-	_, err = url.Parse(results.URL)
+	parsedURL, err := url.Parse(URL)
 	if err != nil {
 		return results, err
 	}
 
-	// Categorize
+	results.URL = parsedURL.String()
+
+	// 1. categorize
 	if runner.Options.Categorize || runner.Options.All {
-		results.Category, err = categorize.Run(URL, runner.Categories)
-		if err != nil {
+		if results.Category, err = runner.categorize(URL); err != nil {
 			return results, err
 		}
 	}
 
-	// Scan Parameters
-	if runner.Options.ScanParam || runner.Options.All {
-		results.Params, err = params.Scan(URL, runner.Params)
-		if err != nil {
-			return results, err
+	queryUnescaped, err := url.QueryUnescape(results.URL)
+	if err != nil {
+		return results, err
+	}
+
+	parsedURL, err = url.Parse(queryUnescaped)
+	if err != nil {
+		return results, err
+	}
+
+	query, err := url.ParseQuery(parsedURL.RawQuery)
+	if err != nil {
+		return results, err
+	}
+
+	if len(query) > 0 {
+		// 2. scan parameters (parth)
+		if runner.Options.ScanParam || runner.Options.All {
+			var payload = "iy3j4h234hjb23234"
+
+			for parameter := range query {
+				// 2.1. parameter list
+				results.AttackSurface.Params.List = append(results.AttackSurface.Params.List, parameter)
+
+				// 2.2. risky parameters
+				for i := range runner.Params {
+					if strings.ToLower(runner.Params[i].Param) == strings.ToLower(parameter) {
+						results.AttackSurface.Params.Risky = append(results.AttackSurface.Params.Risky, runner.Params[i])
+						break
+					}
+				}
+
+				// 2.3. reflected parameters
+				query.Set(parameter, payload)
+
+				parsedURL.RawQuery = query.Encode()
+
+				req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
+				if err != nil {
+					return results, err
+				}
+
+				res, err := runner.Client.Do(req)
+				if err != nil {
+					return results, err
+				}
+
+				defer res.Body.Close()
+
+				// always read the full body so we can re-use the tcp connection
+				body, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					return results, err
+				}
+
+				re := regexp.MustCompile(payload)
+				match := re.FindStringSubmatch(string(body))
+
+				if match != nil {
+					results.AttackSurface.Params.Reflected = append(results.AttackSurface.Params.Reflected, parameter)
+				}
+			}
 		}
 	}
 
 	// Request
 	if runner.Options.Request || runner.Options.All {
-		req, err := http.NewRequest("GET", URL, nil)
+		req, err := http.NewRequest(http.MethodGet, results.URL, nil)
 		if err != nil {
 			return results, err
 		}
@@ -120,10 +197,67 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 
 		defer res.Body.Close()
 
+		// always read the full body so we can re-use the tcp connection
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return results, err
+		}
+
+		// 3. DOMXSS
+		if results.Category == "js" || results.Category == "endpoint" {
+			domXSS := regexp.MustCompile(`/((src|href|data|location|code|value|action)\s*["'\]]*\s*\+?\s*=)|((replace|assign|navigate|getResponseHeader|open(Dialog)?|showModalDialog|eval|evaluate|execCommand|execScript|setTimeout|setInterval)\s*["'\]]*\s*\()/`)
+			match := domXSS.FindStringSubmatch(string(body))
+			if match != nil {
+				results.AttackSurface.DOM = append(results.AttackSurface.DOM, match...)
+			}
+		}
+
 		results.StatusCode = res.StatusCode
 		results.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
 		results.ContentLength = res.ContentLength
 	}
 
 	return results, nil
+}
+
+func (runner *Runner) categorize(URL string) (category string, err error) {
+	if match := runner.Categories.DOC.MatchString(URL); match {
+		category = "doc"
+	}
+
+	if category == "" {
+		if match := runner.Categories.JS.MatchString(URL); match {
+			category = "js"
+		}
+	}
+
+	if category == "" {
+		if match := runner.Categories.ARCHIVE.MatchString(URL); match {
+			category = "archive"
+		}
+	}
+
+	if category == "" {
+		if match := runner.Categories.DATA.MatchString(URL); match {
+			category = "data"
+		}
+	}
+
+	if category == "" {
+		if match := runner.Categories.STYLE.MatchString(URL); match {
+			category = "style"
+		}
+	}
+
+	if category == "" {
+		if match := runner.Categories.MEDIA.MatchString(URL); match {
+			category = "media"
+		}
+	}
+
+	if category == "" {
+		category = "endpoint"
+	}
+
+	return category, nil
 }

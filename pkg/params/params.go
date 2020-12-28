@@ -1,93 +1,52 @@
 package params
 
 import (
-	"io/ioutil"
+	"errors"
+	"io"
 	"net/http"
-	"net/url"
-	"regexp"
-	"strings"
+	"os"
+	"path"
 )
 
-// Params is a
-type Params struct {
-	Param string   `json:"param,omitempty"`
-	Risks []string `json:"risks,omitempty"`
+func File() (file string) {
+	userHomeDir, _ := os.UserHomeDir()
+	return userHomeDir + "/.sigurlx/params.json"
 }
 
-// Results is a
-type Results struct {
-	List      []string `json:"list,omitempty"`
-	Reflected []string `json:"reflected,omitempty"`
-	Risky     []Params `json:"risky_params,omitempty"`
-}
+func UpdateOrDownload(file string) (err error) {
+	directory, filename := path.Split(file)
 
-// Scan is a
-func Scan(URL string, params []Params) (*Results, error) {
-	results := &Results{}
-
-	queryUnescaped, err := url.QueryUnescape(URL)
-	if err != nil {
-		return results, err
-	}
-
-	parsedURL, err := url.Parse(queryUnescaped)
-	if err != nil {
-		return results, err
-	}
-
-	query, err := url.ParseQuery(parsedURL.RawQuery)
-	if err != nil {
-		return results, err
-	}
-
-	if len(query) > 0 {
-		var payload = "iy3j4h234hjb23234"
-
-		for parameter := range query {
-			// parameter list
-			results.List = append(results.List, parameter)
-
-			// risky parameters
-			for i := range params {
-				if strings.ToLower(params[i].Param) == strings.ToLower(parameter) {
-					results.Risky = append(results.Risky, params[i])
-					break
-				}
-			}
-
-			// reflected parameters
-			query.Set(parameter, payload)
-
-			parsedURL.RawQuery = query.Encode()
-
-			req, err := http.NewRequest(http.MethodGet, URL, nil)
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		if directory != "" {
+			err = os.MkdirAll(directory, os.ModePerm)
 			if err != nil {
-				return results, err
-			}
-
-			client := &http.Client{}
-
-			res, err := client.Do(req)
-			if err != nil {
-				return results, err
-			}
-
-			defer res.Body.Close()
-
-			// always read the full body so we can re-use the tcp connection
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				return results, err
-			}
-
-			re := regexp.MustCompile(payload)
-			match := re.FindStringSubmatch(string(body))
-
-			if match != nil {
-				results.Reflected = append(results.Reflected, parameter)
+				return err
 			}
 		}
 	}
 
-	return results, nil
+	paramsFile, err := os.Create(directory + filename)
+	if err != nil {
+		return err
+	}
+
+	defer paramsFile.Close()
+
+	resp, err := http.Get("https://raw.githubusercontent.com/drsigned/sigurlx/main/static/params.json")
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return errors.New("unexpected code")
+	}
+
+	defer resp.Body.Close()
+
+	_, err = io.Copy(paramsFile, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
