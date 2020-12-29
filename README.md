@@ -44,8 +44,11 @@ $ sigurlx -h
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.5.0
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.5.1
        |___/
+
+USAGE:
+  sigurlx [OPTIONS]
 
 USAGE:
   sigurlx [OPTIONS]
@@ -57,7 +60,7 @@ FEATURES:
 
 GENERAL OPTIONS:
   -delay             delay between requests (default: 100ms)
-  -iL                urls (use `iL -` to read stdin)
+  -iL                urls (use `iL -` to read from stdin)
   -nC                no color mode
   -s                 silent mode
   -threads           number concurrent threads (default: 50)

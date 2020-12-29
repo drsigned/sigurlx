@@ -14,7 +14,6 @@ import (
 	"github.com/drsigned/sigurlx/pkg/params"
 )
 
-// Categories is a
 type URLCategoriesRegex struct {
 	JS      *regexp.Regexp
 	DOC     *regexp.Regexp
@@ -24,13 +23,11 @@ type URLCategoriesRegex struct {
 	ARCHIVE *regexp.Regexp
 }
 
-// RiskyParams is a
 type RiskyParams struct {
 	Param string   `json:"param,omitempty"`
 	Risks []string `json:"risks,omitempty"`
 }
 
-// Runner is a
 type Runner struct {
 	Options    *Options
 	Categories URLCategoriesRegex
@@ -38,7 +35,6 @@ type Runner struct {
 	Client     *http.Client
 }
 
-// Results is a
 type Results struct {
 	URL           string `json:"url,omitempty"`
 	Category      string `json:"category,omitempty"`
@@ -55,16 +51,15 @@ type Results struct {
 	} `json:"attack_surface,omitempty"`
 }
 
-// New is a
 func New(options *Options) (runner Runner, err error) {
 	runner.Options = options
 
 	runner.Categories.JS, _ = newRegex(`(?m).*?\.(js)(\?.*?|)$`)
-	runner.Categories.STYLE, _ = newRegex(`(?m).*?\.(css)(\?.*?|)$`)
-	runner.Categories.DATA, _ = newRegex(`(?m).*?\.(json|xml|csv)(\?.*?|)$`)
-	runner.Categories.ARCHIVE, _ = newRegex(`(?m).*?\.(zip|tar|tar\.gz)(\?.*?|)$`)
 	runner.Categories.DOC, _ = newRegex(`(?m).*?\.(pdf|xlsx|doc|docx|txt)(\?.*?|)$`)
+	runner.Categories.DATA, _ = newRegex(`(?m).*?\.(json|xml|csv)(\?.*?|)$`)
+	runner.Categories.STYLE, _ = newRegex(`(?m).*?\.(css)(\?.*?|)$`)
 	runner.Categories.MEDIA, _ = newRegex(`(?m).*?\.(jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff)(\?.*?|)$`)
+	runner.Categories.ARCHIVE, _ = newRegex(`(?m).*?\.(zip|tar|tar\.gz)(\?.*?|)$`)
 
 	// Params
 	raw, err := ioutil.ReadFile(params.File())
@@ -100,7 +95,6 @@ func New(options *Options) (runner Runner, err error) {
 	return runner, nil
 }
 
-// Process is a
 func (runner *Runner) Process(URL string) (results Results, err error) {
 	parsedURL, err := url.Parse(URL)
 	if err != nil {
@@ -221,19 +215,13 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 }
 
 func (runner *Runner) categorize(URL string) (category string, err error) {
-	if match := runner.Categories.DOC.MatchString(URL); match {
-		category = "doc"
+	if match := runner.Categories.JS.MatchString(URL); match {
+		category = "js"
 	}
 
 	if category == "" {
-		if match := runner.Categories.JS.MatchString(URL); match {
-			category = "js"
-		}
-	}
-
-	if category == "" {
-		if match := runner.Categories.ARCHIVE.MatchString(URL); match {
-			category = "archive"
+		if match := runner.Categories.DOC.MatchString(URL); match {
+			category = "doc"
 		}
 	}
 
@@ -252,6 +240,12 @@ func (runner *Runner) categorize(URL string) (category string, err error) {
 	if category == "" {
 		if match := runner.Categories.MEDIA.MatchString(URL); match {
 			category = "media"
+		}
+	}
+
+	if category == "" {
+		if match := runner.Categories.ARCHIVE.MatchString(URL); match {
+			category = "archive"
 		}
 	}
 

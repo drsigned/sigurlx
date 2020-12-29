@@ -18,8 +18,7 @@ func UpdateOrDownload(file string) (err error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		if directory != "" {
-			err = os.MkdirAll(directory, os.ModePerm)
-			if err != nil {
+			if err = os.MkdirAll(directory, os.ModePerm); err != nil {
 				return err
 			}
 		}
@@ -29,22 +28,20 @@ func UpdateOrDownload(file string) (err error) {
 	if err != nil {
 		return err
 	}
-
 	defer paramsFile.Close()
 
-	resp, err := http.Get("https://raw.githubusercontent.com/drsigned/sigurlx/main/static/params.json")
+	res, err := http.Get("https://raw.githubusercontent.com/drsigned/sigurlx/main/static/params.json")
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode != 200 {
+	if res.StatusCode != 200 {
 		return errors.New("unexpected code")
 	}
 
-	defer resp.Body.Close()
+	defer res.Body.Close()
 
-	_, err = io.Copy(paramsFile, resp.Body)
-	if err != nil {
+	if _, err = io.Copy(paramsFile, res.Body); err != nil {
 		return err
 	}
 
