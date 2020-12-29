@@ -52,7 +52,6 @@ func init() {
 	flag.BoolVar(&ro.Categorize, "C", false, "")
 	flag.BoolVar(&ro.ScanParam, "P", false, "")
 	flag.BoolVar(&ro.Request, "request", false, "")
-
 	// general options
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.StringVar(&co.URLs, "iL", "", "")
@@ -61,29 +60,27 @@ func init() {
 	flag.IntVar(&co.threads, "threads", 50, "")
 	flag.BoolVar(&co.updateParams, "update-params", false, "")
 	flag.BoolVar(&co.verbose, "v", false, "")
-
-	// Http options
+	// http options
 	flag.IntVar(&ro.Timeout, "timeout", 10, "")
 	flag.StringVar(&ro.UserAgent, "UA", "", "")
 	flag.StringVar(&ro.Proxy, "x", "", "")
-
-	// OUTPUT
+	// output options
 	flag.StringVar(&co.output, "oJ", "", "")
 
 	flag.Usage = func() {
 		banner()
 
 		h := "USAGE:\n"
-		h += "  sigurlx [OPTIONS]\n\n"
+		h += "  sigurlx [OPTIONS]\n"
 
-		h += "FEATURES:\n"
+		h += "\nFEATURES:\n"
 		h += "  -C                 categorize urls\n"
 		h += "  -P                 scan parameters\n"
 		h += "  -request           send HTTP request\n"
 
 		h += "\nGENERAL OPTIONS:\n"
 		h += "  -delay             delay between requests (default: 100ms)\n"
-		h += "  -iL                urls (use `iL -` to read stdin)\n"
+		h += "  -iL                urls (use `iL -` to read from stdin)\n"
 		h += "  -nC                no color mode\n"
 		h += "  -s                 silent mode\n"
 		h += "  -threads           number concurrent threads (default: 50)\n"
@@ -218,21 +215,21 @@ func main() {
 				co.output = co.output + ".json"
 			}
 		}
-	}
 
-	JSON, err := json.MarshalIndent(output, "", "\t")
-	if err != nil {
-		log.Fatalln(err)
-	}
+		JSON, err := json.MarshalIndent(output, "", "\t")
+		if err != nil {
+			log.Fatalln(err)
+		}
 
-	file, err := os.Create(co.output)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer file.Close()
+		file, err := os.Create(co.output)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer file.Close()
 
-	_, err = file.WriteString(string(JSON))
-	if err != nil {
-		log.Fatalln(err)
+		_, err = file.WriteString(string(JSON))
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
 }
