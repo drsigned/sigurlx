@@ -18,7 +18,7 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 
 ## Features
 
-* Categorize URLs
+- Categorize URLs
 
 	<details>
 	<summary>URLs categories</summary>
@@ -34,9 +34,9 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 	```
 
 	</details>
-* Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
-* Check for **reflected parameters**.
-* Check for **DOM XSS**.
+- Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
+- Check for **reflected parameters**.
+- Check for **DOM XSS**.
 
 ## Usage
 
@@ -49,7 +49,7 @@ $ sigurlx -h
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.5.1
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.6.0
        |___/
 
 USAGE:
