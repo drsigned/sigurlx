@@ -5,9 +5,11 @@ type Options struct {
 	// FEATURES
 	All bool
 
-	Categorize bool
-	ScanParam  bool
-	Request    bool
+	C       bool
+	Request bool
+	P       bool
+	PV      bool
+	PR      bool
 
 	// REQUEST OPTIONS
 	Proxy     string
@@ -18,7 +20,7 @@ type Options struct {
 // ParseOptions is a
 func ParseOptions(options *Options) (*Options, error) {
 	// TASK OPTIONS
-	if !options.Categorize && !options.ScanParam && !options.Request {
+	if !options.C && !options.P && !options.PR && !options.PV && !options.Request {
 		options.All = true
 	}
 

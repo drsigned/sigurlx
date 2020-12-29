@@ -28,6 +28,11 @@ type RiskyParams struct {
 	Risks []string `json:"risks,omitempty"`
 }
 
+type ReflectedParams struct {
+	Param string `json:"param,omitempty"`
+	URL   string `json:"url,omitempty"`
+}
+
 type Runner struct {
 	Options    *Options
 	Categories URLCategoriesRegex
@@ -41,14 +46,12 @@ type Results struct {
 	StatusCode    int    `json:"status_code,omitempty"`
 	ContentType   string `json:"content_type,omitempty"`
 	ContentLength int64  `json:"content_length,omitempty"`
-	AttackSurface struct {
-		Params struct {
-			List      []string      `json:"list,omitempty"`
-			Reflected []string      `json:"reflected,omitempty"`
-			Risky     []RiskyParams `json:"risky,omitempty"`
-		} `json:"params,omitempty"`
-		DOM []string `json:"dom,omitempty"`
-	} `json:"attack_surface,omitempty"`
+	Params        struct {
+		List      []string          `json:"list,omitempty"`
+		Risky     []RiskyParams     `json:"risky,omitempty"`
+		Reflected []ReflectedParams `json:"reflected,omitempty"`
+	} `json:"params,omitempty"`
+	DOM []string `json:"dom,omitempty"`
 }
 
 func New(options *Options) (runner Runner, err error) {
@@ -104,7 +107,7 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 	results.URL = parsedURL.String()
 
 	// 1. categorize
-	if runner.Options.Categorize || runner.Options.All {
+	if runner.Options.C || runner.Options.All {
 		if results.Category, err = runner.categorize(URL); err != nil {
 			return results, err
 		}
@@ -126,37 +129,37 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 	}
 
 	if len(query) > 0 {
-		// 2. scan parameters (parth)
-		if runner.Options.ScanParam || runner.Options.All {
-			var payload = "iy3j4h234hjb23234"
-
+		// 2. scan commonly vuln. parameters
+		if runner.Options.P || runner.Options.PV || runner.Options.All {
 			for parameter := range query {
 				// 2.1. parameter list
-				results.AttackSurface.Params.List = append(results.AttackSurface.Params.List, parameter)
+				results.Params.List = append(results.Params.List, parameter)
 
 				// 2.2. risky parameters
 				for i := range runner.Params {
 					if strings.ToLower(runner.Params[i].Param) == strings.ToLower(parameter) {
-						results.AttackSurface.Params.Risky = append(results.AttackSurface.Params.Risky, runner.Params[i])
+						results.Params.Risky = append(results.Params.Risky, runner.Params[i])
 						break
 					}
 				}
+			}
+		}
 
-				// 2.3. reflected parameters
+		// 3. scan reflected parameters
+		if runner.Options.P || runner.Options.PR || runner.Options.All {
+			var payload = "iy3j4h234hjb23234"
+
+			for parameter, value := range query {
+				tmp := value[0]
+
 				query.Set(parameter, payload)
 
 				parsedURL.RawQuery = query.Encode()
 
-				req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
+				res, err := runner.httpRequest(parsedURL.String(), http.MethodGet, runner.Client)
 				if err != nil {
 					return results, err
 				}
-
-				res, err := runner.Client.Do(req)
-				if err != nil {
-					return results, err
-				}
-
 				defer res.Body.Close()
 
 				// always read the full body so we can re-use the tcp connection
@@ -169,26 +172,20 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 				match := re.FindStringSubmatch(string(body))
 
 				if match != nil {
-					results.AttackSurface.Params.Reflected = append(results.AttackSurface.Params.Reflected, parameter)
+					results.Params.Reflected = append(results.Params.Reflected, ReflectedParams{Param: parameter, URL: parsedURL.String()})
 				}
+
+				query.Set(parameter, tmp)
 			}
 		}
 	}
 
-	// Request
+	// 4. Request
 	if runner.Options.Request || runner.Options.All {
-		req, err := http.NewRequest(http.MethodGet, results.URL, nil)
+		res, err := runner.httpRequest(parsedURL.String(), http.MethodGet, runner.Client)
 		if err != nil {
 			return results, err
 		}
-
-		req.Header.Set("User-Agent", runner.Options.UserAgent)
-
-		res, err := runner.Client.Do(req)
-		if err != nil {
-			return results, err
-		}
-
 		defer res.Body.Close()
 
 		// always read the full body so we can re-use the tcp connection
@@ -202,7 +199,7 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 			domXSS := regexp.MustCompile(`/((src|href|data|location|code|value|action)\s*["'\]]*\s*\+?\s*=)|((replace|assign|navigate|getResponseHeader|open(Dialog)?|showModalDialog|eval|evaluate|execCommand|execScript|setTimeout|setInterval)\s*["'\]]*\s*\()/`)
 			match := domXSS.FindStringSubmatch(string(body))
 			if match != nil {
-				results.AttackSurface.DOM = append(results.AttackSurface.DOM, match...)
+				results.DOM = append(results.DOM, match...)
 			}
 		}
 
@@ -212,6 +209,22 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 	}
 
 	return results, nil
+}
+
+func (runner *Runner) httpRequest(URL string, method string, client *http.Client) (res *http.Response, err error) {
+	req, err := http.NewRequest(method, URL, nil)
+	if err != nil {
+		return res, err
+	}
+
+	req.Header.Set("User-Agent", runner.Options.UserAgent)
+
+	res, err = client.Do(req)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
 }
 
 func (runner *Runner) categorize(URL string) (category string, err error) {

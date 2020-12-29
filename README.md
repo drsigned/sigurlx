@@ -18,7 +18,12 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 
 ## Features
 
-* Categorize URLs into:
+* Categorize URLs
+
+	<details>
+	<summary>URLs categories</summary>
+
+	```
 	* endpoint
 	* js {js}
 	* style {css}
@@ -26,12 +31,12 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 	* archive {zip|tar|tar.gz}
 	* doc {pdf|xlsx|doc|docx|txt}
 	* media {jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff}
-* Map Attack Surface
-    * Parameters
-		* Some HTTP parameter names are more commonly associated with one functionality than the others, sigurlx finds such parameter names and the risks commonly associated with them.
-	* Document Object Model (DOM)
-		* Cross Site Scripting (XSS)
-* Request the URLs, check the response body for any reflected parameters.
+	```
+
+	</details>
+* Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
+* Check for **reflected parameters**.
+* Check for **DOM XSS**.
 
 ## Usage
 
@@ -50,12 +55,11 @@ $ sigurlx -h
 USAGE:
   sigurlx [OPTIONS]
 
-USAGE:
-  sigurlx [OPTIONS]
-
 FEATURES:
-  -C                 categorize urls
-  -P                 scan parameters
+  -c                 categorize urls
+  -p                 scan commonly vuln. & reflected parameters
+  -pR                scan reflected parameters
+  -pV                scan commonly vuln. parameters
   -request           send HTTP request
 
 GENERAL OPTIONS:

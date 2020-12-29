@@ -49,8 +49,10 @@ func banner() {
 
 func init() {
 	// task options
-	flag.BoolVar(&ro.Categorize, "C", false, "")
-	flag.BoolVar(&ro.ScanParam, "P", false, "")
+	flag.BoolVar(&ro.C, "c", false, "")
+	flag.BoolVar(&ro.P, "p", false, "")
+	flag.BoolVar(&ro.PR, "pR", false, "")
+	flag.BoolVar(&ro.PV, "pV", false, "")
 	flag.BoolVar(&ro.Request, "request", false, "")
 	// general options
 	flag.IntVar(&co.delay, "delay", 100, "")
@@ -74,8 +76,10 @@ func init() {
 		h += "  sigurlx [OPTIONS]\n"
 
 		h += "\nFEATURES:\n"
-		h += "  -C                 categorize urls\n"
-		h += "  -P                 scan parameters\n"
+		h += "  -c                 categorize urls\n"
+		h += "  -p                 scan commonly vuln. & reflected parameters\n"
+		h += "  -pR                scan reflected parameters\n"
+		h += "  -pV                scan commonly vuln. parameters\n"
 		h += "  -request           send HTTP request\n"
 
 		h += "\nGENERAL OPTIONS:\n"
