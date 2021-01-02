@@ -166,7 +166,7 @@ func main() {
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
-	var output []runner.Results
+	var output []runner.Result
 
 	for i := 0; i < co.threads; i++ {
 		wg.Add(1)

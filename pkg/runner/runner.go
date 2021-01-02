@@ -23,35 +23,11 @@ type URLCategoriesRegex struct {
 	ARCHIVE *regexp.Regexp
 }
 
-type RiskyParams struct {
-	Param string   `json:"param,omitempty"`
-	Risks []string `json:"risks,omitempty"`
-}
-
-type ReflectedParams struct {
-	Param string `json:"param,omitempty"`
-	URL   string `json:"url,omitempty"`
-}
-
 type Runner struct {
+	Client     *http.Client
+	Params     []CommonVulnParam
 	Options    *Options
 	Categories URLCategoriesRegex
-	Params     []RiskyParams
-	Client     *http.Client
-}
-
-type Results struct {
-	URL           string `json:"url,omitempty"`
-	Category      string `json:"category,omitempty"`
-	StatusCode    int    `json:"status_code,omitempty"`
-	ContentType   string `json:"content_type,omitempty"`
-	ContentLength int64  `json:"content_length,omitempty"`
-	Params        struct {
-		List      []string          `json:"list,omitempty"`
-		Risky     []RiskyParams     `json:"risky,omitempty"`
-		Reflected []ReflectedParams `json:"reflected,omitempty"`
-	} `json:"params,omitempty"`
-	DOM []string `json:"dom,omitempty"`
 }
 
 func New(options *Options) (runner Runner, err error) {
@@ -98,47 +74,43 @@ func New(options *Options) (runner Runner, err error) {
 	return runner, nil
 }
 
-func (runner *Runner) Process(URL string) (results Results, err error) {
+func (runner *Runner) Process(URL string) (result Result, err error) {
 	parsedURL, err := url.Parse(URL)
 	if err != nil {
-		return results, err
+		return result, err
 	}
 
-	results.URL = parsedURL.String()
+	result.URL = parsedURL.String()
 
 	// 1. categorize
 	if runner.Options.C || runner.Options.All {
-		if results.Category, err = runner.categorize(URL); err != nil {
-			return results, err
+		if result.Category, err = runner.categorize(URL); err != nil {
+			return result, err
 		}
 	}
 
-	queryUnescaped, err := url.QueryUnescape(results.URL)
+	queryUnescaped, err := url.QueryUnescape(result.URL)
 	if err != nil {
-		return results, err
+		return result, err
 	}
 
 	parsedURL, err = url.Parse(queryUnescaped)
 	if err != nil {
-		return results, err
+		return result, err
 	}
 
 	query, err := url.ParseQuery(parsedURL.RawQuery)
 	if err != nil {
-		return results, err
+		return result, err
 	}
 
 	if len(query) > 0 {
 		// 2. scan commonly vuln. parameters
 		if runner.Options.P || runner.Options.PV || runner.Options.All {
 			for parameter := range query {
-				// 2.1. parameter list
-				results.Params.List = append(results.Params.List, parameter)
-
-				// 2.2. risky parameters
 				for i := range runner.Params {
 					if strings.ToLower(runner.Params[i].Param) == strings.ToLower(parameter) {
-						results.Params.Risky = append(results.Params.Risky, runner.Params[i])
+						result.CommonVulnParams = append(result.CommonVulnParams, runner.Params[i])
 						break
 					}
 				}
@@ -158,21 +130,21 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 
 				res, err := runner.httpRequest(parsedURL.String(), http.MethodGet, runner.Client)
 				if err != nil {
-					return results, err
+					return result, err
 				}
 				defer res.Body.Close()
 
 				// always read the full body so we can re-use the tcp connection
 				body, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					return results, err
+					return result, err
 				}
 
 				re := regexp.MustCompile(payload)
 				match := re.FindStringSubmatch(string(body))
 
 				if match != nil {
-					results.Params.Reflected = append(results.Params.Reflected, ReflectedParams{Param: parameter, URL: parsedURL.String()})
+					result.ReflectedParams = append(result.ReflectedParams, ReflectedParam{Param: parameter, URL: parsedURL.String()})
 				}
 
 				query.Set(parameter, tmp)
@@ -184,31 +156,31 @@ func (runner *Runner) Process(URL string) (results Results, err error) {
 	if runner.Options.Request || runner.Options.All {
 		res, err := runner.httpRequest(parsedURL.String(), http.MethodGet, runner.Client)
 		if err != nil {
-			return results, err
+			return result, err
 		}
 		defer res.Body.Close()
 
 		// always read the full body so we can re-use the tcp connection
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			return results, err
+			return result, err
 		}
 
 		// 3. DOMXSS
-		if results.Category == "js" || results.Category == "endpoint" {
+		if result.Category == "js" || result.Category == "endpoint" {
 			domXSS := regexp.MustCompile(`/((src|href|data|location|code|value|action)\s*["'\]]*\s*\+?\s*=)|((replace|assign|navigate|getResponseHeader|open(Dialog)?|showModalDialog|eval|evaluate|execCommand|execScript|setTimeout|setInterval)\s*["'\]]*\s*\()/`)
 			match := domXSS.FindStringSubmatch(string(body))
 			if match != nil {
-				results.DOM = append(results.DOM, match...)
+				result.DOM = append(result.DOM, match...)
 			}
 		}
 
-		results.StatusCode = res.StatusCode
-		results.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
-		results.ContentLength = res.ContentLength
+		result.StatusCode = res.StatusCode
+		result.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
+		result.ContentLength = res.ContentLength
 	}
 
-	return results, nil
+	return result, nil
 }
 
 func (runner *Runner) httpRequest(URL string, method string, client *http.Client) (res *http.Response, err error) {
