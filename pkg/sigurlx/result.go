@@ -1,4 +1,4 @@
-package runner
+package sigurlx
 
 type CommonVulnParam struct {
 	Param string   `json:"param,omitempty"`

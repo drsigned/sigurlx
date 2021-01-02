@@ -15,7 +15,7 @@ import (
 
 	"github.com/drsigned/gos"
 	"github.com/drsigned/sigurlx/pkg/params"
-	"github.com/drsigned/sigurlx/pkg/runner"
+	"github.com/drsigned/sigurlx/pkg/sigurlx"
 	"github.com/logrusorgru/aurora/v3"
 )
 
@@ -33,7 +33,7 @@ type options struct {
 var (
 	co options
 	au aurora.Aurora
-	ro runner.Options
+	ro sigurlx.Options
 )
 
 func banner() {
@@ -124,7 +124,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	options, err := runner.ParseOptions(&ro)
+	options, err := sigurlx.ParseOptions(&ro)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -166,7 +166,7 @@ func main() {
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
-	var output []runner.Result
+	var output []sigurlx.Result
 
 	for i := 0; i < co.threads; i++ {
 		wg.Add(1)
@@ -176,13 +176,13 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			sigurlx, err := runner.New(options)
+			runner, err := sigurlx.New(options)
 			if err != nil {
 				log.Fatalln(err)
 			}
 
 			for URL := range URLs {
-				results, err := sigurlx.Process(URL)
+				results, err := runner.Process(URL)
 				if err != nil {
 					if co.verbose {
 						fmt.Fprintf(os.Stderr, err.Error()+"\n")
