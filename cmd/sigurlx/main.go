@@ -48,12 +48,11 @@ func banner() {
 }
 
 func init() {
-	// task options
+	// probe options
 	flag.BoolVar(&ro.C, "c", false, "")
-	flag.BoolVar(&ro.P, "p", false, "")
+	flag.BoolVar(&ro.DX, "dX", false, "")
 	flag.BoolVar(&ro.PR, "pR", false, "")
 	flag.BoolVar(&ro.PV, "pV", false, "")
-	flag.BoolVar(&ro.Request, "request", false, "")
 	// general options
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.StringVar(&co.URLs, "iL", "", "")
@@ -65,7 +64,7 @@ func init() {
 	// http options
 	flag.IntVar(&ro.Timeout, "timeout", 10, "")
 	flag.StringVar(&ro.UserAgent, "UA", "", "")
-	flag.StringVar(&ro.Proxy, "x", "", "")
+	flag.StringVar(&ro.HTTPProxy, "x", "", "")
 	// output options
 	flag.StringVar(&co.output, "oJ", "", "")
 
@@ -77,10 +76,9 @@ func init() {
 
 		h += "\nFEATURES:\n"
 		h += "  -c                 categorize urls\n"
-		h += "  -p                 scan commonly vuln. & reflected parameters\n"
-		h += "  -pR                scan reflected parameters\n"
-		h += "  -pV                scan commonly vuln. parameters\n"
-		h += "  -request           send HTTP request\n"
+		h += "  -dX                probe for DOMXSS\n"
+		h += "  -pR                probe for reflected parameters\n"
+		h += "  -pV                probe for commonly vuln. parameters\n"
 
 		h += "\nGENERAL OPTIONS:\n"
 		h += "  -delay             delay between requests (default: 100ms)\n"

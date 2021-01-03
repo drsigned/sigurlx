@@ -5,14 +5,13 @@ type Options struct {
 	// FEATURES
 	All bool
 
-	C       bool
-	Request bool
-	P       bool
-	PV      bool
-	PR      bool
+	C  bool
+	DX bool
+	PR bool
+	PV bool
 
 	// REQUEST OPTIONS
-	Proxy     string
+	HTTPProxy string
 	UserAgent string
 	Timeout   int
 }
@@ -20,7 +19,7 @@ type Options struct {
 // ParseOptions is a
 func ParseOptions(options *Options) (*Options, error) {
 	// TASK OPTIONS
-	if !options.C && !options.P && !options.PR && !options.PV && !options.Request {
+	if !options.C && !options.DX && !options.PR && !options.PV {
 		options.All = true
 	}
 
