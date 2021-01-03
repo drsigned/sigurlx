@@ -9,6 +9,7 @@ type Options struct {
 	DX bool
 	PR bool
 	PV bool
+	R  bool
 
 	// REQUEST OPTIONS
 	HTTPProxy string
@@ -19,7 +20,7 @@ type Options struct {
 // ParseOptions is a
 func ParseOptions(options *Options) (*Options, error) {
 	// TASK OPTIONS
-	if !options.C && !options.DX && !options.PR && !options.PV {
+	if !options.C && !options.DX && !options.PR && !options.PV && !options.R {
 		options.All = true
 	}
 

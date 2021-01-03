@@ -1,10 +1,39 @@
 package sigurlx
 
 import (
+	"crypto/tls"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 )
+
+func (sigurlx *Sigurlx) initClient() error {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
+			KeepAlive: time.Second,
+		}).DialContext,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
+	if sigurlx.Options.HTTPProxy != "" {
+		if proxyURL, err := url.Parse(sigurlx.Options.HTTPProxy); err == nil {
+			transport.Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
+	sigurlx.Client = &http.Client{
+		Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
+		Transport: transport,
+	}
+
+	return nil
+}
 
 func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 	response := Response{}
@@ -14,11 +43,6 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 		return response, err
 	}
 
-	defer res.Body.Close()
-
-	response.StatusCode = res.StatusCode
-	response.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
-
 	// websockets don't have a readable body
 	if res.StatusCode != http.StatusSwitchingProtocols {
 		// always read the full body so we can re-use the tcp connection
@@ -26,6 +50,14 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 			return response, err
 		}
 	}
+
+	if err := res.Body.Close(); err != nil {
+		return response, err
+	}
+
+	response.StatusCode = res.StatusCode
+	response.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
+	response.ContentLength = res.ContentLength
 
 	return response, nil
 }

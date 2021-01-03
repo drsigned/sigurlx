@@ -42,7 +42,7 @@ func banner() {
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _`+"`"+` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.6.0
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.7.0
        |___/
 `).Bold())
 }
@@ -53,6 +53,7 @@ func init() {
 	flag.BoolVar(&ro.DX, "dX", false, "")
 	flag.BoolVar(&ro.PR, "pR", false, "")
 	flag.BoolVar(&ro.PV, "pV", false, "")
+	flag.BoolVar(&ro.R, "r", false, "")
 	// general options
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.StringVar(&co.URLs, "iL", "", "")
@@ -74,11 +75,12 @@ func init() {
 		h := "USAGE:\n"
 		h += "  sigurlx [OPTIONS]\n"
 
-		h += "\nFEATURES:\n"
+		h += "\nPROBE OPTIONS:\n"
 		h += "  -c                 categorize urls\n"
 		h += "  -dX                probe for DOMXSS\n"
 		h += "  -pR                probe for reflected parameters\n"
 		h += "  -pV                probe for commonly vuln. parameters\n"
+		h += "  -r                 probe request for status_code, content_type, e.t.c\n"
 
 		h += "\nGENERAL OPTIONS:\n"
 		h += "  -delay             delay between requests (default: 100ms)\n"
@@ -89,7 +91,7 @@ func init() {
 		h += "  -update-params     update params file\n"
 		h += "  -v                 verbose mode\n"
 
-		h += "\nREQUEST OPTIONS (used with -request):\n"
+		h += "\nHTTP OPTIONS:\n"
 		h += "  -timeout           HTTP request timeout (default: 10s)\n"
 		h += "  -UA                HTTP user agent\n"
 		h += "  -x                 HTTP Proxy URL\n"

@@ -18,25 +18,26 @@ sigurlx is a fast and multi-purpose HTTP toolkit allow to run multiple probers o
 
 ## Features
 
-- Categorize URLs
+* **categorize URLs**
 
 	<details>
 	<summary>URLs categories</summary>
 
 	```
-	* endpoint
-	* js {js}
-	* style {css}
-	* data {json|xml|csv}
-	* archive {zip|tar|tar.gz}
-	* doc {pdf|xlsx|doc|docx|txt}
-	* media {jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff}
+	> endpoint
+	> js {js}
+	> style {css}
+	> data {json|xml|csv}
+	> archive {zip|tar|tar.gz}
+	> doc {pdf|xlsx|doc|docx|txt}
+	> media {jpg|jpeg|png|ico|svg|gif|webp|mp3|mp4|woff|woff2|ttf|eot|tif|tiff}
 	```
 
 	</details>
-- Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
-- Check for **reflected parameters**.
-- Check for **DOM XSS**.
+* **probe for commonly vulnerable parameters** - Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
+* **probe for reflected parameters**.
+* **probe for DOMXSS**.
+* **probe request for status_code, content_type, e.t.c**
 
 ## Usage
 
@@ -49,18 +50,18 @@ $ sigurlx -h
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.6.0
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.7.0
        |___/
 
 USAGE:
   sigurlx [OPTIONS]
 
-FEATURES:
+PROBE OPTIONS:
   -c                 categorize urls
-  -p                 scan commonly vuln. & reflected parameters
-  -pR                scan reflected parameters
-  -pV                scan commonly vuln. parameters
-  -request           send HTTP request
+  -dX                probe for DOMXSS
+  -pR                probe for reflected parameters
+  -pV                probe for commonly vuln. parameters
+  -r                 probe request for status_code, content_type, e.t.c
 
 GENERAL OPTIONS:
   -delay             delay between requests (default: 100ms)
@@ -71,7 +72,7 @@ GENERAL OPTIONS:
   -update-params     update params file
   -v                 verbose mode
 
-REQUEST OPTIONS (used with -request):
+HTTP OPTIONS:
   -timeout           HTTP request timeout (default: 10s)
   -UA                HTTP user agent
   -x                 HTTP Proxy URL

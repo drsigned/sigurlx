@@ -1,12 +1,9 @@
 package sigurlx
 
 import (
-	"crypto/tls"
-	"net"
 	"net/http"
 	"net/url"
 	"regexp"
-	"time"
 )
 
 type Sigurlx struct {
@@ -24,41 +21,19 @@ type Sigurlx struct {
 
 func New(options *Options) (Sigurlx, error) {
 	sigurlx := Sigurlx{}
-	// options
 	sigurlx.Options = options
-	// Params
-	sigurlx.initParams()
-	// URL categories regex
 	sigurlx.initCategories()
+	sigurlx.initParams()
+	sigurlx.initClient()
+
 	// DOMXSS regex
 	sigurlx.DOMXSSRegex, _ = newRegex(`/((src|href|data|location|code|value|action)\s*["'\]]*\s*\+?\s*=)|((replace|assign|navigate|getResponseHeader|open(Dialog)?|showModalDialog|eval|evaluate|execCommand|execScript|setTimeout|setInterval)\s*["'\]]*\s*\()/`)
-
-	transport := &http.Transport{
-		DialContext: (&net.Dialer{
-			Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
-			KeepAlive: time.Second,
-		}).DialContext,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	if sigurlx.Options.HTTPProxy != "" {
-		if proxyURL, err := url.Parse(sigurlx.Options.HTTPProxy); err == nil {
-			transport.Proxy = http.ProxyURL(proxyURL)
-		}
-	}
-
-	sigurlx.Client = &http.Client{
-		Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
-		Transport: transport,
-	}
 
 	return sigurlx, nil
 }
 
 func (sigurlx *Sigurlx) Process(URL string) (result Result, err error) {
-	var xyz Response
+	var res Response
 
 	parsedURL, err := url.Parse(URL)
 	if err != nil {
@@ -74,29 +49,49 @@ func (sigurlx *Sigurlx) Process(URL string) (result Result, err error) {
 		}
 	}
 
-	xq, _ := getQuery(result.URL)
+	query, err := getQuery(parsedURL.String())
+	if err != nil {
+		return result, err
+	}
 
 	// 2. scan commonly vuln. parameters
 	if sigurlx.Options.PV || sigurlx.Options.All {
-		result.CommonVulnParams, _ = sigurlx.CommonVulnParamsProbe(xq)
+		result.CommonVulnParams, err = sigurlx.CommonVulnParamsProbe(query)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	// 3. scan reflected parameters
 	if sigurlx.Options.PR || sigurlx.Options.All {
-		result.ReflectedParams, _ = sigurlx.ReflectedParamsProbe(parsedURL, xq)
+		result.ReflectedParams, err = sigurlx.ReflectedParamsProbe(parsedURL, query)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	// 4. DOMXSS
 	if sigurlx.Options.DX || sigurlx.Options.All {
-		if xyz.IsEmpty() {
-			xyz, _ = sigurlx.DoHTTP(parsedURL.String())
+		if res.IsEmpty() {
+			res, _ = sigurlx.DoHTTP(parsedURL.String())
 		}
 
 		if result.Category == "js" || result.Category == "endpoint" {
-			if match := sigurlx.DOMXSSRegex.FindStringSubmatch(string(xyz.Body)); match != nil {
+			if match := sigurlx.DOMXSSRegex.FindStringSubmatch(string(res.Body)); match != nil {
 				result.DOM = append(result.DOM, match...)
 			}
 		}
+	}
+
+	// 5. Request
+	if sigurlx.Options.R || sigurlx.Options.All {
+		if res.IsEmpty() {
+			res, _ = sigurlx.DoHTTP(parsedURL.String())
+		}
+
+		result.StatusCode = res.StatusCode
+		result.ContentType = res.ContentType
+		result.ContentLength = res.ContentLength
 	}
 
 	return result, nil
