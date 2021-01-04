@@ -7,7 +7,7 @@ import (
 type Response struct {
 	StatusCode       int
 	ContentType      string
-	ContentLength    int64
+	ContentLength    int
 	RedirectLocation string
 	Headers          map[string][]string
 	Body             []byte

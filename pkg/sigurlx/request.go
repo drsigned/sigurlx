@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func (sigurlx *Sigurlx) initClient() error {
@@ -36,12 +37,14 @@ func (sigurlx *Sigurlx) initClient() error {
 }
 
 func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
-	response := Response{}
+	var response Response
 
 	res, err := sigurlx.httpRequest(URL, http.MethodGet, sigurlx.Client)
 	if err != nil {
 		return response, err
 	}
+
+	response.Headers = res.Header.Clone()
 
 	// websockets don't have a readable body
 	if res.StatusCode != http.StatusSwitchingProtocols {
@@ -57,7 +60,7 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 
 	response.StatusCode = res.StatusCode
 	response.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
-	response.ContentLength = res.ContentLength
+	response.ContentLength = utf8.RuneCountInString(string(response.Body))
 
 	return response, nil
 }
