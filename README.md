@@ -50,7 +50,7 @@ $ sigurlx -h
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.7.1
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.8.0
        |___/
 
 USAGE:
@@ -73,9 +73,10 @@ GENERAL OPTIONS:
   -v                 verbose mode
 
 HTTP OPTIONS:
-  -timeout           HTTP request timeout (default: 10s)
-  -UA                HTTP user agent
-  -x                 HTTP Proxy URL
+  -follow-redirects    follow URL redirects (default: false)
+  -http-proxy          HTTP Proxy URL
+  -timeout             HTTP request timeout (default: 10s)
+  -UA                  HTTP user agent
 
 OUTPUT OPTIONS:
   -oJ                JSON output file
