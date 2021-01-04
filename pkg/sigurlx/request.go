@@ -6,12 +6,20 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 	"unicode/utf8"
 )
 
 func (sigurlx *Sigurlx) initClient() error {
+	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse // Tell the http client to not follow redirect
+	}
+
+	if sigurlx.Options.FollowRedirects {
+		// Follow redirects
+		redirectFunc = nil
+	}
+
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
@@ -29,8 +37,9 @@ func (sigurlx *Sigurlx) initClient() error {
 	}
 
 	sigurlx.Client = &http.Client{
-		Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
-		Transport: transport,
+		Timeout:       time.Duration(sigurlx.Options.Timeout) * time.Second,
+		Transport:     transport,
+		CheckRedirect: redirectFunc,
 	}
 
 	return nil
@@ -59,8 +68,9 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 	}
 
 	response.StatusCode = res.StatusCode
-	response.ContentType = strings.Split(res.Header.Get("Content-Type"), ";")[0]
+	response.ContentType = response.GetHeaderPart("Content-Type", ";")
 	response.ContentLength = utf8.RuneCountInString(string(response.Body))
+	response.RedirectLocation = response.GetHeaderPart("Location", ";")
 
 	return response, nil
 }

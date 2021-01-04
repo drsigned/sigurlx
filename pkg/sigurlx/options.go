@@ -11,10 +11,11 @@ type Options struct {
 	PV bool
 	R  bool
 
-	// REQUEST OPTIONS
-	HTTPProxy string
-	UserAgent string
-	Timeout   int
+	// HTTP OPTIONS
+	FollowRedirects bool
+	HTTPProxy       string
+	Timeout         int
+	UserAgent       string
 }
 
 // ParseOptions is a
