@@ -99,8 +99,12 @@ $ GO111MODULE=on go get -u -v github.com/drsigned/sigurlx/cmd/sigurlx
 
 #### From Github
 
-```bash
-$ git clone https://github.com/drsigned/sigurlx.git; cd sigurlx/cmd/sigurlx/; go build; mv sigurlx /usr/local/bin/; sigurlx -h
+```
+▶ git clone https://github.com/drsigned/sigurlx.git
+▶ cd sigurlx/cmd/sigurlx/
+▶ go build .
+▶ mv sigurlx /usr/local/bin/
+▶ sigurlx -h
 ```
 
 ## Credits
