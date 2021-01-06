@@ -93,6 +93,7 @@ func (sigurlx *Sigurlx) Process(URL string) (result Result, err error) {
 		result.ContentType = res.ContentType
 		result.ContentLength = res.ContentLength
 		result.RedirectLocation = res.RedirectLocation
+		result.RedirectMode = res.RedirectMode
 	}
 
 	return result, nil

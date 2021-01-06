@@ -12,10 +12,11 @@ type Options struct {
 	R  bool
 
 	// HTTP OPTIONS
-	FollowRedirects bool
-	HTTPProxy       string
-	Timeout         int
-	UserAgent       string
+	FollowRedirects     bool
+	FollowHostRedirects bool
+	HTTPProxy           string
+	Timeout             int
+	UserAgent           string
 }
 
 // ParseOptions is a

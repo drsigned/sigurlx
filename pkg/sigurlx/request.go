@@ -11,16 +11,7 @@ import (
 )
 
 func (sigurlx *Sigurlx) initClient() error {
-	var redirectFunc = func(_ *http.Request, _ []*http.Request) error {
-		return http.ErrUseLastResponse // Tell the http client to not follow redirect
-	}
-
-	if sigurlx.Options.FollowRedirects {
-		// Follow redirects
-		redirectFunc = nil
-	}
-
-	transport := &http.Transport{
+	tr := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   time.Duration(sigurlx.Options.Timeout) * time.Second,
 			KeepAlive: time.Second,
@@ -32,14 +23,35 @@ func (sigurlx *Sigurlx) initClient() error {
 
 	if sigurlx.Options.HTTPProxy != "" {
 		if proxyURL, err := url.Parse(sigurlx.Options.HTTPProxy); err == nil {
-			transport.Proxy = http.ProxyURL(proxyURL)
+			tr.Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
+	re := func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	if sigurlx.Options.FollowRedirects {
+		re = nil
+	}
+
+	if sigurlx.Options.FollowHostRedirects {
+		re = func(redirectedRequest *http.Request, previousRequest []*http.Request) error {
+			newHost := redirectedRequest.URL.Host
+			oldHost := previousRequest[0].URL.Host
+
+			if newHost != oldHost {
+				return http.ErrUseLastResponse
+			}
+
+			return nil
 		}
 	}
 
 	sigurlx.Client = &http.Client{
 		Timeout:       time.Duration(sigurlx.Options.Timeout) * time.Second,
-		Transport:     transport,
-		CheckRedirect: redirectFunc,
+		Transport:     tr,
+		CheckRedirect: re,
 	}
 
 	return nil
@@ -71,6 +83,17 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 	response.ContentType = response.GetHeaderPart("Content-Type", ";")
 	response.ContentLength = utf8.RuneCountInString(string(response.Body))
 	response.RedirectLocation = response.GetHeaderPart("Location", ";")
+
+	if response.RedirectLocation != "" {
+		parsedURL, _ := url.Parse(URL)
+		parsedLocation, _ := url.Parse(response.RedirectLocation)
+
+		if parsedURL.Host == parsedLocation.Host || parsedLocation.Host == "" {
+			response.RedirectMode = "internal"
+		} else {
+			response.RedirectMode = "external"
+		}
+	}
 
 	return response, nil
 }

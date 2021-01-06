@@ -17,6 +17,7 @@ type Result struct {
 	ContentType      string            `json:"content_type,omitempty"`
 	ContentLength    int               `json:"content_length,omitempty"`
 	RedirectLocation string            `json:"redirect_location,omitempty"`
+	RedirectMode     string            `json:"redirect_mode,omitempty"`
 	CommonVulnParams []CommonVulnParam `json:"common_vuln_params,omitempty"`
 	ReflectedParams  []ReflectedParam  `json:"reflected_params,omitempty"`
 	DOM              []string          `json:"dom,omitempty"`

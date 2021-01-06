@@ -64,6 +64,7 @@ func init() {
 	flag.BoolVar(&co.verbose, "v", false, "")
 	// http options
 	flag.BoolVar(&ro.FollowRedirects, "follow-redirects", false, "")
+	flag.BoolVar(&ro.FollowHostRedirects, "follow-host-redirects", false, "")
 	flag.StringVar(&ro.HTTPProxy, "http-proxy ", "", "")
 	flag.IntVar(&ro.Timeout, "timeout", 10, "")
 	flag.StringVar(&ro.UserAgent, "UA", "", "")
@@ -77,26 +78,27 @@ func init() {
 		h += "  sigurlx [OPTIONS]\n"
 
 		h += "\nPROBE OPTIONS:\n"
-		h += "  -c                   categorize urls\n"
-		h += "  -dX                  probe for DOMXSS\n"
-		h += "  -pR                  probe for reflected parameters\n"
-		h += "  -pV                  probe for commonly vuln. parameters\n"
-		h += "  -r                   probe request for status_code, content_type, e.t.c\n"
+		h += "  -c                        categorize urls\n"
+		h += "  -dX                       probe for DOMXSS\n"
+		h += "  -pR                       probe for reflected parameters\n"
+		h += "  -pV                       probe for commonly vuln. parameters\n"
+		h += "  -r                        probe request for status_code, content_type, e.t.c\n"
 
 		h += "\nGENERAL OPTIONS:\n"
-		h += "  -delay               delay between requests (default: 100ms)\n"
-		h += "  -iL                  urls (use `iL -` to read from stdin)\n"
-		h += "  -nC                  no color mode\n"
-		h += "  -s                   silent mode\n"
-		h += "  -threads             number concurrent threads (default: 50)\n"
-		h += "  -update-params       update params file\n"
-		h += "  -v                   verbose mode\n"
+		h += "  -delay                    delay between requests (default: 100ms)\n"
+		h += "  -iL                       urls (use `iL -` to read from stdin)\n"
+		h += "  -nC                       no color mode\n"
+		h += "  -s                        silent mode\n"
+		h += "  -threads                  number concurrent threads (default: 50)\n"
+		h += "  -update-params            update params file\n"
+		h += "  -v                        verbose mode\n"
 
 		h += "\nHTTP OPTIONS:\n"
-		h += "  -follow-redirects    follow URL redirects (default: false)\n"
-		h += "  -http-proxy          HTTP Proxy URL\n"
-		h += "  -timeout             HTTP request timeout (default: 10s)\n"
-		h += "  -UA                  HTTP user agent\n"
+		h += "  -follow-redirects         follow redirects (default: false)\n"
+		h += "  -follow-host-redirects    follow internal redirects - same host redirects (default: false)\n"
+		h += "  -http-proxy               HTTP Proxy URL\n"
+		h += "  -timeout                  HTTP request timeout (default: 10s)\n"
+		h += "  -UA                       HTTP user agent\n"
 
 		h += "\nOUTPUT OPTIONS:\n"
 		h += "  -oJ                JSON output file\n\n"

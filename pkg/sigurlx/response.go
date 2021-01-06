@@ -10,6 +10,7 @@ type Response struct {
 	ContentType      string
 	ContentLength    int
 	RedirectLocation string
+	RedirectMode     string
 	Headers          map[string][]string
 	Body             []byte
 	Raw              string
