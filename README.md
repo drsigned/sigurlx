@@ -73,10 +73,11 @@ GENERAL OPTIONS:
   -v                 verbose mode
 
 HTTP OPTIONS:
-  -follow-redirects    follow URL redirects (default: false)
-  -http-proxy          HTTP Proxy URL
-  -timeout             HTTP request timeout (default: 10s)
-  -UA                  HTTP user agent
+  -follow-redirects         follow redirects (default: false)
+  -follow-host-redirects    follow internal redirects - same host redirects (default: false)
+  -http-proxy               HTTP Proxy URL
+  -timeout                  HTTP request timeout (default: 10s)
+  -UA                       HTTP user agent
 
 OUTPUT OPTIONS:
   -oJ                JSON output file
