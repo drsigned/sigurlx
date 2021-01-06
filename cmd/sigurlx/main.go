@@ -7,8 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,7 +44,7 @@ func banner() {
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _`+"`"+` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v1.8.0
+|___/_|\__, |\__,_|_|  |_/_/\_\ v1.9.0
        |___/
 `).Bold())
 }
@@ -195,7 +197,36 @@ func main() {
 					continue
 				}
 
-				fmt.Println(results.URL)
+				fmt.Println(au.BrightBlue("+"), results.URL)
+				if ro.C {
+					fmt.Println(au.BrightCyan("    - category:"), results.Category)
+				}
+				if ro.R {
+					fmt.Println(au.BrightCyan("    - status_code:"), coloredStatus(results.StatusCode, au))
+					fmt.Println(au.BrightCyan("    - content_type:"), results.ContentType)
+					fmt.Println(au.BrightCyan("    - content_lenght:"), results.ContentLength)
+					if results.RedirectLocation != "" {
+						fmt.Println(au.BrightCyan("    - redirect_location:"), results.RedirectLocation)
+					}
+				}
+				if ro.PV {
+					if len(results.CommonVulnParams) > 0 {
+						fmt.Println(au.BrightCyan("    - common_vuln_params:"))
+					}
+					for i := range results.CommonVulnParams {
+						fmt.Println(au.BrightCyan("        - param:"), results.CommonVulnParams[i].Param)
+						fmt.Println(au.BrightCyan("        - issues:"), strings.Join(results.CommonVulnParams[i].Risks, ", "))
+					}
+				}
+				if ro.PR {
+					if len(results.ReflectedParams) > 0 {
+						fmt.Println(au.BrightCyan("    - reflected_params:"))
+					}
+					for i := range results.ReflectedParams {
+						fmt.Println(au.BrightCyan("        - param:"), results.ReflectedParams[i].Param)
+						fmt.Println(au.BrightCyan("        - issues:"), results.ReflectedParams[i].URL)
+					}
+				}
 
 				mutex.Lock()
 				output = append(output, results)
@@ -240,4 +271,21 @@ func main() {
 			log.Fatalln(err)
 		}
 	}
+}
+
+func coloredStatus(code int, au aurora.Aurora) aurora.Value {
+	var coloredStatusCode aurora.Value
+
+	switch {
+	case code >= http.StatusOK && code < http.StatusMultipleChoices:
+		coloredStatusCode = au.BrightGreen(strconv.Itoa(code))
+	case code >= http.StatusMultipleChoices && code < http.StatusBadRequest:
+		coloredStatusCode = au.BrightYellow(strconv.Itoa(code))
+	case code >= http.StatusBadRequest && code < http.StatusInternalServerError:
+		coloredStatusCode = au.BrightRed(strconv.Itoa(code))
+	case code > http.StatusInternalServerError:
+		coloredStatusCode = au.Bold(aurora.Yellow(strconv.Itoa(code)))
+	}
+
+	return coloredStatusCode
 }
