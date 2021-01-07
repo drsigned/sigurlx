@@ -88,6 +88,8 @@ func (sigurlx *Sigurlx) DoHTTP(URL string) (Response, error) {
 		parsedURL, _ := url.Parse(URL)
 		parsedLocation, _ := url.Parse(response.RedirectLocation)
 
+		response.RedirectLocationHost = parsedLocation.Host
+
 		if parsedURL.Host == parsedLocation.Host || parsedLocation.Host == "" {
 			response.RedirectMode = "internal"
 		} else {
