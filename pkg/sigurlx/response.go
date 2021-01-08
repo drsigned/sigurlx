@@ -6,15 +6,13 @@ import (
 )
 
 type Response struct {
-	StatusCode           int
-	ContentType          string
-	ContentLength        int
-	RedirectLocation     string
-	RedirectLocationHost string
-	RedirectMode         string
-	Headers              map[string][]string
-	Body                 []byte
-	Raw                  string
+	StatusCode       int
+	ContentType      string
+	ContentLength    int
+	RedirectLocation string
+	Headers          map[string][]string
+	Body             []byte
+	Raw              string
 }
 
 func (response Response) IsEmpty() bool {
