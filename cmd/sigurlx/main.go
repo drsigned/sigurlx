@@ -20,7 +20,6 @@ type options struct {
 	delay        int
 	threads      int
 	output       string
-	silent       bool
 	noColor      bool
 	URLs         string
 	updateParams bool
@@ -39,7 +38,7 @@ func banner() {
  ___(_) __ _ _   _ _ __| |_  __
 / __| |/ _`+"`"+` | | | | '__| \ \/ /
 \__ \ | (_| | |_| | |  | |>  < 
-|___/_|\__, |\__,_|_|  |_/_/\_\ v2.0.0
+|___/_|\__, |\__,_|_|  |_/_/\_\ v2.1.0
        |___/
 `).Bold())
 }
@@ -47,9 +46,8 @@ func banner() {
 func init() {
 	// general options
 	flag.StringVar(&co.URLs, "iL", "", "")
-	flag.IntVar(&co.threads, "threads", 50, "")
+	flag.IntVar(&co.threads, "threads", 20, "")
 	flag.BoolVar(&co.updateParams, "update-params", false, "")
-	flag.BoolVar(&co.verbose, "v", false, "")
 	// http options
 	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.BoolVar(&ro.FollowRedirects, "follow-redirects", false, "")
@@ -60,7 +58,7 @@ func init() {
 	// output options
 	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.StringVar(&co.output, "oJ", "", "")
-	flag.BoolVar(&co.silent, "s", false, "")
+	flag.BoolVar(&co.verbose, "v", false, "")
 
 	flag.Usage = func() {
 		banner()
@@ -70,9 +68,8 @@ func init() {
 
 		h += "\nGENERAL OPTIONS:\n"
 		h += "  -iL                       input urls list (use `-iL -` to read from stdin)\n"
-		h += "  -threads                  number concurrent threads (default: 50)\n"
+		h += "  -threads                  number concurrent threads (default: 20)\n"
 		h += "  -update-params            update params file\n"
-		h += "  -v                        verbose mode\n"
 
 		h += "\nHTTP OPTIONS:\n"
 		h += "  -delay                    delay between requests (default: 100ms)\n"
@@ -85,39 +82,29 @@ func init() {
 		h += "\nOUTPUT OPTIONS:\n"
 		h += "  -nC                       no color mode\n"
 		h += "  -oJ                       JSON output file\n"
-		h += "  -s                        silent mode\n"
+		h += "  -v                        verbose mode\n"
 
 		fmt.Fprintf(os.Stderr, h)
 	}
 
 	flag.Parse()
-
 	ro.Parse()
 
 	au = aurora.NewAurora(!co.noColor)
 }
 
 func main() {
-	if !co.silent {
-		banner()
-	}
+	banner()
 
 	if co.updateParams {
 		if err := params.UpdateOrDownload(params.File()); err != nil {
 			log.Fatalln(err)
 		}
 
-		if !co.silent {
-			fmt.Println("[", au.BrightBlue("INF"), "] params file updated successfully :)")
-		}
+		fmt.Println("[", au.BrightBlue("INF"), "] params file updated successfully :)")
 
 		os.Exit(0)
 	}
-
-	// options, err := sigurlx.ParseOptions(&ro)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
 
 	URLs := make(chan string, co.threads)
 
@@ -174,7 +161,7 @@ func main() {
 			for URL := range URLs {
 				results, err := runner.Process(URL)
 				if err != nil {
-					fmt.Println(au.BrightRed(" -"), results.URL, au.BrightGreen("...failed!"))
+					fmt.Println(au.BrightRed(" -"), results.URL, au.BrightRed("...failed!"))
 
 					if co.verbose {
 						fmt.Fprintf(os.Stderr, err.Error()+"\n")

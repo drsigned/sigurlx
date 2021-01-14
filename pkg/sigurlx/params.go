@@ -24,18 +24,19 @@ func (sigurlx *Sigurlx) initParams() error {
 }
 
 func (sigurlx *Sigurlx) CommonVulnParamsProbe(query url.Values) ([]CommonVulnParam, error) {
-	var x []CommonVulnParam
+	var commonVulnParams []CommonVulnParam
 
 	for parameter := range query {
 		for i := range sigurlx.Params {
 			if strings.ToLower(sigurlx.Params[i].Param) == strings.ToLower(parameter) {
-				x = append(x, sigurlx.Params[i])
+				commonVulnParams = append(commonVulnParams, sigurlx.Params[i])
+
 				break
 			}
 		}
 	}
 
-	return x, nil
+	return commonVulnParams, nil
 }
 
 func (sigurlx *Sigurlx) ReflectedParamsProbe(parsedURL *url.URL, query url.Values, res Response) ([]ReflectedParam, error) {
@@ -46,26 +47,25 @@ func (sigurlx *Sigurlx) ReflectedParamsProbe(parsedURL *url.URL, query url.Value
 		return reflectedParams, err
 	}
 
-	if len(reflected) == 0 {
-		return reflectedParams, nil
-	}
+	if len(reflected) > 0 {
+		for _, parameter := range reflected {
+			characters := []string{"\"", "'", "<", ">", "/"}
 
-	for _, param := range reflected {
-		wasReflected, err := sigurlx.checkAppend(parsedURL, query, param, "iy3j4h234hjb23234")
-		if err != nil {
-			return reflectedParams, err
-		}
+			var reflectedCharacters []string
 
-		if wasReflected {
-			for _, char := range []string{"\"", "'", "<", ">"} {
-				wasReflected, err := sigurlx.checkAppend(parsedURL, query, param, "aprefix"+char+"asuffix")
+			for _, char := range characters {
+				wasReflected, err := sigurlx.checkAppend(parsedURL, query, parameter, "aprefix"+char+"asuffix")
 				if err != nil {
 					continue
 				}
 
 				if wasReflected {
-					reflectedParams = append(reflectedParams, ReflectedParam{Param: param, URL: parsedURL.String()})
+					reflectedCharacters = append(reflectedCharacters, char)
 				}
+			}
+
+			if len(reflectedCharacters) > 2 {
+				reflectedParams = append(reflectedParams, ReflectedParam{Param: parameter, Characters: reflectedCharacters})
 			}
 		}
 	}
@@ -101,14 +101,11 @@ func (sigurlx *Sigurlx) checkReflection(URL string, query url.Values, res Respon
 		res, _ = sigurlx.DoHTTP(URL)
 	}
 
-	// nope (:
 	if res.StatusCode >= http.StatusMultipleChoices && res.StatusCode < http.StatusBadRequest {
 		return reflected, nil
 	}
 
-	// also nope
-	ct := res.ContentType
-	if ct != "" && !strings.Contains(ct, "html") {
+	if res.ContentType != "" && !strings.Contains(res.ContentType, "html") {
 		return reflected, nil
 	}
 

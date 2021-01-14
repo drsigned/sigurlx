@@ -13,8 +13,8 @@ type CommonVulnParam struct {
 }
 
 type ReflectedParam struct {
-	Param string `json:"param,omitempty"`
-	URL   string `json:"url,omitempty"`
+	Param      string   `json:"param,omitempty"`
+	Characters []string `json:"characters,omitempty"`
 }
 
 type Result struct {
