@@ -2,16 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"path"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -172,7 +167,7 @@ func main() {
 	mutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
-	var output []sigurlx.Result
+	var output sigurlx.Results
 
 	for i := 0; i < co.threads; i++ {
 		wg.Add(1)
@@ -197,9 +192,8 @@ func main() {
 					continue
 				}
 
-				fmt.Println(au.BrightGreen(" +"), results.URL, au.BrightGreen("...done!"))
-
 				mutex.Lock()
+				fmt.Println(au.BrightGreen(" +"), results.URL, au.BrightGreen("...done!"))
 				output = append(output, results)
 				mutex.Unlock()
 			}
@@ -208,55 +202,7 @@ func main() {
 
 	wg.Wait()
 
-	// write output to file (json format)
-	if co.output != "" {
-		if _, err := os.Stat(co.output); os.IsNotExist(err) {
-			directory, filename := path.Split(co.output)
-
-			if _, err := os.Stat(directory); os.IsNotExist(err) {
-				if directory != "" {
-					if err = os.MkdirAll(directory, os.ModePerm); err != nil {
-						log.Fatalln(err)
-					}
-				}
-			}
-
-			if strings.ToLower(path.Ext(filename)) != ".json" {
-				co.output = co.output + ".json"
-			}
-		}
-
-		JSON, err := json.MarshalIndent(output, "", "\t")
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		file, err := os.Create(co.output)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		defer file.Close()
-
-		_, err = file.WriteString(string(JSON))
-		if err != nil {
-			log.Fatalln(err)
-		}
+	if err = output.SaveToJSON(co.output); err != nil {
+		log.Fatalln(err)
 	}
-}
-
-func coloredStatus(code int, au aurora.Aurora) aurora.Value {
-	var coloredStatusCode aurora.Value
-
-	switch {
-	case code >= http.StatusOK && code < http.StatusMultipleChoices:
-		coloredStatusCode = au.BrightGreen(strconv.Itoa(code))
-	case code >= http.StatusMultipleChoices && code < http.StatusBadRequest:
-		coloredStatusCode = au.BrightYellow(strconv.Itoa(code))
-	case code >= http.StatusBadRequest && code < http.StatusInternalServerError:
-		coloredStatusCode = au.BrightRed(strconv.Itoa(code))
-	case code > http.StatusInternalServerError:
-		coloredStatusCode = au.Bold(aurora.Yellow(strconv.Itoa(code)))
-	}
-
-	return coloredStatusCode
 }
