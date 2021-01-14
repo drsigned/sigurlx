@@ -45,28 +45,22 @@ func banner() {
 }
 
 func init() {
-	// probe options
-	flag.BoolVar(&ro.C, "c", false, "")
-	flag.BoolVar(&ro.DX, "dX", false, "")
-	flag.BoolVar(&ro.PR, "pR", false, "")
-	flag.BoolVar(&ro.PV, "pV", false, "")
-	flag.BoolVar(&ro.R, "r", false, "")
 	// general options
-	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.StringVar(&co.URLs, "iL", "", "")
-	flag.BoolVar(&co.noColor, "nC", false, "")
-	flag.BoolVar(&co.silent, "s", false, "")
 	flag.IntVar(&co.threads, "threads", 50, "")
 	flag.BoolVar(&co.updateParams, "update-params", false, "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 	// http options
+	flag.IntVar(&co.delay, "delay", 100, "")
 	flag.BoolVar(&ro.FollowRedirects, "follow-redirects", false, "")
 	flag.BoolVar(&ro.FollowHostRedirects, "follow-host-redirects", false, "")
 	flag.StringVar(&ro.HTTPProxy, "http-proxy ", "", "")
 	flag.IntVar(&ro.Timeout, "timeout", 10, "")
 	flag.StringVar(&ro.UserAgent, "UA", "", "")
 	// output options
+	flag.BoolVar(&co.noColor, "nC", false, "")
 	flag.StringVar(&co.output, "oJ", "", "")
+	flag.BoolVar(&co.silent, "s", false, "")
 
 	flag.Usage = func() {
 		banner()
@@ -74,36 +68,31 @@ func init() {
 		h := "USAGE:\n"
 		h += "  sigurlx [OPTIONS]\n"
 
-		h += "\nPROBE OPTIONS:\n"
-		h += "  -c                        categorize urls\n"
-		h += "  -dX                       probe for DOMXSS\n"
-		h += "  -pR                       probe for reflected parameters\n"
-		h += "  -pV                       probe for commonly vuln. parameters\n"
-		h += "  -r                        probe request for status_code, content_type, e.t.c\n"
-
 		h += "\nGENERAL OPTIONS:\n"
-		h += "  -delay                    delay between requests (default: 100ms)\n"
-		h += "  -iL                       urls (use `iL -` to read from stdin)\n"
-		h += "  -nC                       no color mode\n"
-		h += "  -s                        silent mode\n"
+		h += "  -iL                       input urls list (use `-iL -` to read from stdin)\n"
 		h += "  -threads                  number concurrent threads (default: 50)\n"
 		h += "  -update-params            update params file\n"
 		h += "  -v                        verbose mode\n"
 
 		h += "\nHTTP OPTIONS:\n"
+		h += "  -delay                    delay between requests (default: 100ms)\n"
 		h += "  -follow-redirects         follow redirects (default: false)\n"
-		h += "  -follow-host-redirects    follow internal redirects - same host redirects (default: false)\n"
+		h += "  -follow-host-redirects    follow internal redirects i.e, same host redirects (default: false)\n"
 		h += "  -http-proxy               HTTP Proxy URL\n"
 		h += "  -timeout                  HTTP request timeout (default: 10s)\n"
 		h += "  -UA                       HTTP user agent\n"
 
 		h += "\nOUTPUT OPTIONS:\n"
-		h += "  -oJ                JSON output file\n\n"
+		h += "  -nC                       no color mode\n"
+		h += "  -oJ                       JSON output file\n"
+		h += "  -s                        silent mode\n"
 
 		fmt.Fprintf(os.Stderr, h)
 	}
 
 	flag.Parse()
+
+	ro.Parse()
 
 	au = aurora.NewAurora(!co.noColor)
 }
@@ -125,10 +114,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	options, err := sigurlx.ParseOptions(&ro)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	// options, err := sigurlx.ParseOptions(&ro)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
 
 	URLs := make(chan string, co.threads)
 
@@ -177,7 +166,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			runner, err := sigurlx.New(options)
+			runner, err := sigurlx.New(&ro)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -185,6 +174,8 @@ func main() {
 			for URL := range URLs {
 				results, err := runner.Process(URL)
 				if err != nil {
+					fmt.Println(au.BrightRed(" -"), results.URL, au.BrightGreen("...failed!"))
+
 					if co.verbose {
 						fmt.Fprintf(os.Stderr, err.Error()+"\n")
 					}
@@ -202,7 +193,7 @@ func main() {
 
 	wg.Wait()
 
-	if err = output.SaveToJSON(co.output); err != nil {
+	if err := output.SaveToJSON(co.output); err != nil {
 		log.Fatalln(err)
 	}
 }

@@ -7,16 +7,14 @@
 * [Features](#features)
 * [Usage](#usage)
 * [Installation](#installation)
-    * [From Binary](#from-binary)
-    * [From source](#from-source)
-    * [From github](#from-github)
-* [Credits](#credits)
+	* [From Binary](#from-binary)
+	* [From source](#from-source)
+	* [From github](#from-github)
 * [Contribution](#contribution)
-
 
 ## Features
 
-* **categorize URLs**
+* Categorize URLs
 
 	<details>
 	<summary>URLs categories</summary>
@@ -32,10 +30,11 @@
 	```
 
 	</details>
-* **probe for commonly vulnerable parameters** - Some HTTP parameter names are more commonly associated with one functionality than the others, **sigurlx finds such parameter names and the risks commonly associated with them**.
-* **probe for reflected parameters**.
-* **probe for DOMXSS**.
-* **probe request for status_code, content_type, e.t.c**
+
+* Next, probe request for `status_code`, `content_type`, e.t.c
+* Next, for every URL of category `endpoint` with a query:
+	* Probe for commonly vulnerable parameters (inspired by [Somdev Sangwan](https://github.com/s0md3v)'s [Parth](https://github.com/s0md3v/Parth)).
+	* Probe for reflected parameters (inspired by [Tom Hudson](https://github.com/tomnomnom)'s [kxss](https://github.com/tomnomnom/hacks/tree/master/kxss)).
 
 ## Usage
 
@@ -54,31 +53,24 @@ $ sigurlx -h
 USAGE:
   sigurlx [OPTIONS]
 
-PROBE OPTIONS:
-  -c                 categorize urls
-  -dX                probe for DOMXSS
-  -pR                probe for reflected parameters
-  -pV                probe for commonly vuln. parameters
-  -r                 probe request for status_code, content_type, e.t.c
-
 GENERAL OPTIONS:
-  -delay             delay between requests (default: 100ms)
-  -iL                urls (use `iL -` to read from stdin)
-  -nC                no color mode
-  -s                 silent mode
-  -threads           number concurrent threads (default: 50)
-  -update-params     update params file
-  -v                 verbose mode
+  -iL                       input urls list (use `-iL -` to read from stdin)
+  -threads                  number concurrent threads (default: 50)
+  -update-params            update params file
+  -v                        verbose mode
 
 HTTP OPTIONS:
+  -delay                    delay between requests (default: 100ms)
   -follow-redirects         follow redirects (default: false)
-  -follow-host-redirects    follow internal redirects - same host redirects (default: false)
+  -follow-host-redirects    follow internal redirects i.e, same host redirects (default: false)
   -http-proxy               HTTP Proxy URL
   -timeout                  HTTP request timeout (default: 10s)
   -UA                       HTTP user agent
 
 OUTPUT OPTIONS:
-  -oJ                JSON output file
+  -nC                       no color mode
+  -oJ                       JSON output file
+  -s                        silent mode
 ```
 
 ## Installation
@@ -104,10 +96,6 @@ sigurlx requires **go1.14+** to install successfully. Run the following command 
 ▶ mv sigurlx /usr/local/bin/
 ▶ sigurlx -h
 ```
-
-## Credits
-
-The list of parameter names and the risks associated with them is mainly created from the public work of various people of the community - initial list was obtained from [Somdev Sangwan](https://github.com/s0md3v)'s [Parth](https://github.com/s0md3v/Parth).
 
 ## Contribution
 

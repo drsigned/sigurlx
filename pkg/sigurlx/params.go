@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 
 	"github.com/drsigned/sigurlx/pkg/params"
@@ -39,40 +38,39 @@ func (sigurlx *Sigurlx) CommonVulnParamsProbe(query url.Values) ([]CommonVulnPar
 	return x, nil
 }
 
-func (sigurlx *Sigurlx) ReflectedParamsProbe(parsedURL *url.URL, query url.Values) ([]ReflectedParam, error) {
-	var x []ReflectedParam
-	var payload = "iy3j4h234hjb23234"
+func (sigurlx *Sigurlx) ReflectedParamsProbe(parsedURL *url.URL, query url.Values, res Response) ([]ReflectedParam, error) {
+	var reflectedParams []ReflectedParam
 
-	for parameter, value := range query {
-		tmp := value[0]
-
-		query.Set(parameter, payload)
-
-		parsedURL.RawQuery = query.Encode()
-
-		res, err := sigurlx.httpRequest(parsedURL.String(), http.MethodGet, sigurlx.Client)
-		if err != nil {
-			return x, err
-		}
-		defer res.Body.Close()
-
-		// always read the full body so we can re-use the tcp connection
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return x, err
-		}
-
-		re := regexp.MustCompile(payload)
-		match := re.FindStringSubmatch(string(body))
-
-		if match != nil {
-			x = append(x, ReflectedParam{Param: parameter, URL: parsedURL.String()})
-		}
-
-		query.Set(parameter, tmp)
+	reflected, err := sigurlx.checkReflection(parsedURL.String(), query, res)
+	if err != nil {
+		return reflectedParams, err
 	}
 
-	return x, nil
+	if len(reflected) == 0 {
+		return reflectedParams, nil
+	}
+
+	for _, param := range reflected {
+		wasReflected, err := sigurlx.checkAppend(parsedURL, query, param, "iy3j4h234hjb23234")
+		if err != nil {
+			return reflectedParams, err
+		}
+
+		if wasReflected {
+			for _, char := range []string{"\"", "'", "<", ">"} {
+				wasReflected, err := sigurlx.checkAppend(parsedURL, query, param, "aprefix"+char+"asuffix")
+				if err != nil {
+					continue
+				}
+
+				if wasReflected {
+					reflectedParams = append(reflectedParams, ReflectedParam{Param: param, URL: parsedURL.String()})
+				}
+			}
+		}
+	}
+
+	return reflectedParams, nil
 }
 
 func getQuery(URL string) (url.Values, error) {
@@ -94,4 +92,57 @@ func getQuery(URL string) (url.Values, error) {
 	}
 
 	return query, nil
+}
+
+func (sigurlx *Sigurlx) checkReflection(URL string, query url.Values, res Response) ([]string, error) {
+	var reflected []string
+
+	if res.IsEmpty() {
+		res, _ = sigurlx.DoHTTP(URL)
+	}
+
+	// nope (:
+	if res.StatusCode >= http.StatusMultipleChoices && res.StatusCode < http.StatusBadRequest {
+		return reflected, nil
+	}
+
+	// also nope
+	ct := res.ContentType
+	if ct != "" && !strings.Contains(ct, "html") {
+		return reflected, nil
+	}
+
+	for param, value := range query {
+		for _, v := range value {
+			if !strings.Contains(string(res.Body), v) {
+				continue
+			}
+
+			reflected = append(reflected, param)
+		}
+	}
+
+	return reflected, nil
+}
+
+func (sigurlx *Sigurlx) checkAppend(parsedURL *url.URL, query url.Values, param, suffix string) (bool, error) {
+	val := query.Get(param)
+
+	query.Set(param, val+suffix)
+	parsedURL.RawQuery = query.Encode()
+
+	reflected, err := sigurlx.checkReflection(parsedURL.String(), query, Response{})
+	if err != nil {
+		return false, err
+	}
+
+	for _, r := range reflected {
+		if r == param {
+			return true, nil
+		}
+	}
+
+	query.Set(param, val)
+
+	return false, nil
 }
