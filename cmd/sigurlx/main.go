@@ -197,36 +197,7 @@ func main() {
 					continue
 				}
 
-				fmt.Println(au.BrightBlue("+"), results.URL)
-				if ro.C {
-					fmt.Println(au.BrightCyan("    - category:"), results.Category)
-				}
-				if ro.R {
-					fmt.Println(au.BrightCyan("    - status_code:"), coloredStatus(results.StatusCode, au))
-					fmt.Println(au.BrightCyan("    - content_type:"), results.ContentType)
-					fmt.Println(au.BrightCyan("    - content_lenght:"), results.ContentLength)
-					if results.RedirectLocation != "" {
-						fmt.Println(au.BrightCyan("    - redirect_location:"), results.RedirectLocation)
-					}
-				}
-				if ro.PV {
-					if len(results.CommonVulnParams) > 0 {
-						fmt.Println(au.BrightCyan("    - common_vuln_params:"))
-					}
-					for i := range results.CommonVulnParams {
-						fmt.Println(au.BrightCyan("        - param:"), results.CommonVulnParams[i].Param)
-						fmt.Println(au.BrightCyan("        - issues:"), strings.Join(results.CommonVulnParams[i].Risks, ", "))
-					}
-				}
-				if ro.PR {
-					if len(results.ReflectedParams) > 0 {
-						fmt.Println(au.BrightCyan("    - reflected_params:"))
-					}
-					for i := range results.ReflectedParams {
-						fmt.Println(au.BrightCyan("        - param:"), results.ReflectedParams[i].Param)
-						fmt.Println(au.BrightCyan("        - issues:"), results.ReflectedParams[i].URL)
-					}
-				}
+				fmt.Println(au.BrightGreen(" +"), results.URL, au.BrightGreen("...done!"))
 
 				mutex.Lock()
 				output = append(output, results)
