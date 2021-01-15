@@ -67,7 +67,7 @@ HTTP OPTIONS:
 
 OUTPUT OPTIONS:
   -nC                       no color mode
-  -oJ                       JSON output file
+  -oJ                       JSON output file (default: ./sigurlx.json)
   -v                        verbose mode
 ```
 
@@ -82,7 +82,7 @@ You can download the pre-built binary for your platform from this repository's [
 sigurlx requires **go1.14+** to install successfully. Run the following command to get the repo
 
 ```bash
-▶ GO111MODULE=on go get -u -v github.com/drsigned/sigurlx/cmd/sigurlx
+▶ go get -u github.com/drsigned/sigurlx/cmd/sigurlx
 ```
 
 #### From Github

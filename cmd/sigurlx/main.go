@@ -57,7 +57,7 @@ func init() {
 	flag.StringVar(&ro.UserAgent, "UA", "", "")
 	// output options
 	flag.BoolVar(&co.noColor, "nC", false, "")
-	flag.StringVar(&co.output, "oJ", "", "")
+	flag.StringVar(&co.output, "oJ", "./sigurlx.json", "")
 	flag.BoolVar(&co.verbose, "v", false, "")
 
 	flag.Usage = func() {
@@ -81,7 +81,7 @@ func init() {
 
 		h += "\nOUTPUT OPTIONS:\n"
 		h += "  -nC                       no color mode\n"
-		h += "  -oJ                       JSON output file\n"
+		h += "  -oJ                       JSON output file (default: ./sigurlx.json)\n"
 		h += "  -v                        verbose mode\n"
 
 		fmt.Fprintf(os.Stderr, h)
